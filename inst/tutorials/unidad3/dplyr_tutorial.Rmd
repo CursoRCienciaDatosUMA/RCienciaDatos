@@ -1,0 +1,779 @@
+---
+title: "Manipulación de Datos"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(tidyverse)
+library(nycflights13)
+
+tutorial_options(exercise.timelimit = 60)
+knitr::opts_chunk$set(error = TRUE)
+```
+
+## Bienvenida
+
+### `r ""`
+
+Muy a menudo, los datos vienen en un formato tal que necesitamos filtrar las observaciones no necesarias, crear nuevas variables e incluso resumir las ya existentes para, a continuación, poder visualizarlos. En este tutorial, aprenderemos a manipular datos, incluyendo:
+
+* Cómo usar `filter()` para extraer observaciones que pasen un test lógico
+* Cómo escribir comparaciones lógicas en R
+* Cómo combinar comparaciones lógicas con operadores booleanos
+* Cómo crear nuevas variables con `mutate()`
+* Cómo reconocer las familias de funciones más útiles que usar con `mutate()`
+* Cómo resumir tablas con `summarise()` 
+* Cómo reconocer las familias de funciones más útiles que combinar con `summarise()`
+* Cómo combinar múltiples operaciones con el operador _pipe_, `%>%`
+* Cómo calcular recuentis de las observaciones con `n()`
+* Cómo resumir grupos de observaciones con `group_by()` y `summarise()`
+
+
+### Datos que usaremos
+
+Para practicar estas habilidades, usaremos el _dataset_ `flights` del paquete `nycflights13`. Estos datos proceden del [Bureau of Transportation Statistics](http://www.transtats.bts.gov/DatabaseInfo.asp?DB_ID=120&Link=0) de Estados Unidos y contiene información acerca de los `r format(nrow(nycflights13::flights), big.mark = ",")` vuelos que salieron de la ciudad de Nueva York en 2013. Este objeto está documentado en `?flights`.
+
+Para manipular los datos, usaremos cuatro funciones: `filter()`, `mutate()`, `group_by()`, y `summarise()`. Todas funcionan de la misma forma: 
+
+1. El primer argumento es un dataframe.
+
+1. Los demás argumentos describen qué hacer con el dataframe, usando los nombres de las variables (columnas) sin necesidad de utilizar comillas.
+
+1. El resultado es un nuevo dataframe.
+
+Estas propiedades, en su conjunto, facilitan el poder encadenar múltiples pasos simples para resolver una tarea más compleja.
+
+Hemos pre-cargado los paquetes para este tutorial con:
+
+```{r eval = FALSE}
+library(tidyverse) # carga dplyr, ggplot2, y demás
+library(nycflights13)
+```
+
+## Filtrar filas con `filter()`
+
+### filter()
+
+`filter()` extrae un subconjunto de las observaciones (filas), basándose en los valores de una o más columnas.
+
+El primer argumento es el nombre del dataframe. Los demás argumentos son las expresiones (lógicas) que nos sirven para filtrar el dataframe.
+
+Por ejemplo, podemos seleccionar todos los vuelos del 1 de enero con:
+
+```{r filter1, exercise = TRUE, exercise.eval = FALSE}
+filter(flights, month == 1, day == 1)
+```
+
+Cuando se ejecuta esa línea de código, dplyr realiza la operación de filtrado y devuelve un nuevo _dataframe_ con aquellas filas que hayan pasado el test lógico.
+
+## Comparaciones lógicas
+
+### Operadores de comparación
+
+Para poder filtrar de forma eficiente, debemos conocer cómo seleccionar las observaciones que necesitamos usando los operadores de comparación de R. R proporciona el conjunto estándar de comparaciones: `>`, `>=`, `<`, `<=`, `!=` (no igual), y `==` (igual). 
+
+Cuando se empieza con R, el error más común es intentar comprobar una igualdad con `=` en lugar de con `==`. Cuando esto ocurre, nos encontraremos con un mensaje de error informativo:
+
+```{r, error = TRUE}
+filter(flights, month = 1)
+```
+
+### Aritmética de punto flotante
+
+Otro problema comúnn que nos podríamos encontrar al usar `==` es el de la igualdad de los números en punto flotante.
+
+Los ordenadores no pueden almacenar un número infinito de dígitos, así que redondean números más complejos a números que tienen un gran número (finito) de dígitos después de la coma decimal. Como resultado, `sqrt(2) ^ 2` se almacena como `1.99999999999999999999999999`, bastante cercano a `2` pero no exactamente igual. 
+
+```{r}
+sqrt(2) ^ 2 == 2
+```
+
+De esta forma, tendremos que recordar que muchos de los números que podamos ver en el ordenador son aproximaciones. Una forma cómoda de testear la igualdad de dichos números es con el uso de la función `near()`:
+
+```{r}
+near(sqrt(2) ^ 2,  2)
+```
+
+## Operadores booleanos
+
+### &, |, y !
+
+Si le pasamos a `filter()` más de un argumento, combinará dichos argumentos con "y", es decir, `filter()` sólo devolverá aquellas filas que devuelvan "verdadero" para cada una de las expresiones. 
+
+Se pueden combinar expresiones de otras formas, usando los operadores booleanos: `&` es "y", `|` es "o", y `!` es "no" (la negación lógica).
+
+```{r logicals, echo = FALSE}
+question(" What will the following code return? `filter(flights, month == 11 | month == 12)`",
+         answer("Every flight that departed in November _or_ December", correct = TRUE),
+         answer("Every flight that departed in November _and_ December", message = "Technically a flight could not have departed in November _and_ December unless it departed twice."),
+         answer("Every flight _except for_ those that departed in November or December"),
+         answer("An error. This is an incorrect way to combine tests.", message = "The next section will say a little more about combining tests."),
+         allow_retry = TRUE
+)
+```
+
+### Errores comunes
+
+En R, el orden de las operaciones no funciona como en español. No podemos escribir `filter(flights, month == 11 | 12)`, que podríamos _traducir_ literalmente a "encuentra todos los vuelos que salieron en noviembre o diciembre". En su lugar, encuentra todos los meses cuyo resultado sea igual a `11 | 12`, que es una expresión que evalúa a "verdadero". En un contexto numérico, como aquí, `TRUE` se convierte en 1, luego esto encuentra todos los vuelos en enero, no en noviembre o diciembre.
+
+La mejor solución es estar seguros de escribir una expresión _completa_ en cada lado de una expresión booleana.
+
+Otros trucos que nos pueden ayudar con los tests lógicos y con los operadores booleanos en R:
+
+1. Un atajo bastante útil en casos como el anterior es usar la expresión `x %in% y`. Esto seleccionará cada fila donde `x` sea uno de los valores de `y`. Podríamos usarla para escribir el código en la pregunta de arriba:
+
+    ```{r, eval = FALSE}
+    nov_dec <- filter(flights, month %in% c(11, 12))
+    ```
+
+2. A la vez que tenemos `&` y `|`, R también tiene `&&` y `||`. ¡No se deben usar con `filter()`!
+
+3. Siempre que se presenten expresiones booleanas complicadas, con muchas partes, en `filter()`, deberíamos considerar reescribirlas creando variables de forma explícita, usando `mutate()`.
+
+## Ejercicios
+
+### Ejercicio 1
+
+Use los espacios para código de más abajo para encontrar todos los vuelos que:
+
+1. Tuvieron un retraso en la llegada de dos o más horas
+
+    ```{r filterex1, exercise = TRUE}
+    
+    ```
+    ```{r filterex1-solution}
+    filter(flights, arr_delay >= 2)
+    ```
+
+1. Volaron a Houston (código de aeropuerto `IAH` o `HOU`)
+
+    ```{r filterex2, exercise = TRUE}
+    
+    ```
+    ```{r filterex2-solution}
+    filter(flights, dest %in% c("IAH", "HOU"))
+    ```
+    
+    <div id="filterex2-hint">
+    **Pista:** Este es un buen caso para el operador `%in%`.
+    </div>
+
+1. Fueron operados por United (`UA`), American (`AA`), o Delta (`DL`)
+
+    ```{r filterex3, exercise = TRUE}
+    
+    ```
+    ```{r filterex3-solution}
+    filter(flights, carrier %in% c("UA", "AA", "DL"))
+    ```
+    
+    <div id="filterex3-hint">
+    **Pista:** La variable `carrier` consiste en las aerolíneas que operaban cada vuelo. Éste es otro buen caso para el operador `%in%`.
+    </div>
+    
+1. Salieron en verano (julio, agosto y septiembre)
+    
+    ```{r filterex4, exercise = TRUE}
+    
+    ```
+    ```{r filterex4-solution}
+    filter(flights, 6 < month, month < 10)
+    ```
+    
+    <div id="filterex4-hint">
+    **Pista:** Cuando se convierten a números, julio, agosto y septiembre son 7, 8 y 9.
+    </div>
+
+1. Llegaron más de dos horas tarde, pero no salieron tarde
+
+    ```{r filterex5, exercise = TRUE}
+    
+    ```
+    ```{r filterex5-solution}
+    filter(flights, arr_delay > 120, dep_delay < 0)
+    ```
+    
+    <div id="filterex5-hint">
+    **Pista:** Recuerda que los retrasos en la salida y llegada están almacenados en _minutos_.
+    </div>
+
+1. Se retrasaron más de una hora al salir, pero durante el vuelo ganaron 30 minutos o más
+    
+    ```{r filterex6, exercise = TRUE}
+    
+    ```
+    ```{r filterex6-solution}
+    filter(flights, dep_delay > 60, (dep_delay - arr_delay) >= 30)
+    ```
+
+    <div id="filterex6-hint">
+    **Pista:** El tiempo que un avión gana en el vuelo es `dep_delay - arr_delay`.
+    </div>
+        
+1. Salieron entre medianoche y las 6am (inclusive)
+
+    ```{r filterex7, exercise = TRUE}
+    
+    ```
+    ```{r filterex7-solution}
+    filter(flights, dep_time <= 600 | dep_time == 2400)
+    ```
+    
+    <div id="filterex7-hint">
+    **Pista:** No olvidéis los vuelos que salieron exactamente a medianoche (`2400`). Éste es un buen caso para el operador "or".
+    </div>
+
+### Ejercicio 2
+
+Otra función auxiliar en dplyr para el filtrado es `between()`. ¿Qué es lo que hace? ¿Podrías usar `between()` para simplificar el código necesario para responder a los retos anteriores?
+
+```{r filterex8, exercise = TRUE}
+?between
+```
+
+
+
+## Añadir nuevas variables con mutate()
+
+Un_dataset_ a veces contiene información que se puede usar para definir nuevas variables. `mutate()` nos ayuda a calcular dichas variables. Puesto que `mutate()` siempre añade las nuevas columnas al final del _dataset_, comenzaremos creando un dataframe con menos columnas que nos permitirá ver las nuevas variables (si añadiéramos las nuevas variables a  `flights`, las nuevas columns se saldrían de la pantalla, lo que las haría difícil de ver). 
+
+### select()
+
+Podemos seleccionar un subconjunto de las variables con la función `select()` de dplyr. Ejecuta el código de abajo para ver el _dataset_ que `select()` crea.
+
+```{r select, exercise = TRUE, exercise.eval = FALSE}
+flights_sml <- select(flights, 
+  arr_delay, 
+  dep_delay,
+  distance, 
+  air_time
+)
+```
+
+### mutate()
+
+El código más abajo crea dos nuevas variables con la función `mutate()`, la cual devuelve un nuevo dataframe que contiene las nuevas variables añadidas a una copia del _dataset_ original. Usa "Run Code" para crear las nuevas variables.
+
+```{r mutate1-setup}
+flights_sml <- select(flights, 
+  arr_delay, 
+  dep_delay,
+  distance, 
+  air_time
+)
+```
+
+```{r mutate1, exercise = TRUE, exercise.eval = FALSE}
+mutate(flights_sml,
+  gain = arr_delay - dep_delay,
+  speed = distance / air_time * 60
+)
+```
+
+Nota que cuando usas `mutate()` puedes crear múltiples variables a la vez, e incluso puedes referirte a las variables que acabas de crear en la misma llamada:
+
+```{r echo = FALSE}
+flights_sml <- select(flights, 
+  arr_delay, 
+  dep_delay,
+  distance, 
+  air_time
+)
+```
+
+```{r}
+mutate(flights_sml,
+  gain = arr_delay - dep_delay,
+  hours = air_time / 60,
+  gain_per_hour = gain / hours
+)
+```
+
+### transmute()
+
+`mutate()` siempre devolverá las nuevas variables añadidas a una copia de los datos originales. Si solo quieres devolver las nuevas variables, usa `transmute()`. En el código de más abajo, reemplaza `mutate()` por `transmute()` y observa la diferencia en lo resultados.
+
+```{r transmute, exercise = TRUE, exercise.eval = FALSE}
+mutate(flights,
+  gain = arr_delay - dep_delay,
+  hours = air_time / 60,
+  gain_per_hour = gain / hours
+)
+```
+
+```{r transmute-solution}
+transmute(flights,
+  gain = arr_delay - dep_delay,
+  hours = air_time / 60,
+  gain_per_hour = gain / hours
+)
+```
+
+```{r transmute-check}
+"¡Excelente trabajo! `transmute()` y `mutate()` hacen lo mismo, pero `transmute()` solo devuelve las nuevas variables. `mutate()` devuelve una copia de los datos originales con las nuevas variables añadidas al final."
+```
+
+## Funciones útiles para mutate()
+
+Puedes usar cualquier función dentro de `mutate()` siempre y cuando la función esté **vectorizada**. Una función vectorizada toma un vector de valores como entrada y devuelve un vector con el mismo número de valores como salida. 
+
+Hay varias familis de funciones vectorizadas que son particularmente útiles cuando acompañan a `mutate()`: 
+
+*   **Operadores aritméticos**: `+`, `-`, `*`, `/`, `^`: `air_time / 60`, `hours * 60 + minute`, etc.
+    
+*   **Operadores de aritmética modular**: `%/%` (división entera) y `%%` (resto), donde `x == y * (x %/% y) + (x %% y)`. La aritmétic modular es una herramienta útil poeque permite descomponer un número entero en piezas. Por ejemplo, en el _dataset_ `flights`,  se puede calcular `hour` y `minute` a partir de `dep_time` con:
+    
+    ```{r}
+    transmute(flights,
+      dep_time,
+      hour = dep_time %/% 100,
+      minute = dep_time %% 100
+    )
+    ```
+  
+*   **Logaritmoss**: `log()`, `log2()`, `log10()`. Los logaritmos son un tipo de transformación tremendamente útiles para datos que se dispersan por diferentes órdenes de magnitud. También, convierten relaciones multiplicativas en aditivas, lo cual es muy interesante en ciertos aspectos del modelado de los datos.
+    
+  *   **Comparaciones lógicas**, `<`, `<=`, `>`, `>=`, `!=`.
+
+*   **Ranking**: hay una srie de funciones que devuelven _rankings_ de los datos. La más sencilla de ellas es `min_rank()`, que ordena los datos y devuelve su posición en el ranking (e.g. 1º, 2º, 3º, 4º). Por defecto, asigna posiciones más bajas (cercanas al 1) a los valores más bajos, para asignárselas a los valores más altos, se debe usar `desc(x)`. 
+    
+    ```{r}
+    y <- c(1, 2, 2, NA, 3, 4)
+    min_rank(y)
+    min_rank(desc(y))
+    ```
+    
+    Si `min_rank()` no hace lo que se necesita, podemos intentarlo con las variantes
+    `row_number()`, `dense_rank()`, `percent_rank()`, `cume_dist()`,
+    `ntile()`.  Se pueden consultar sus páginas de ayuda para más detalle.
+    
+    ```{r}
+    row_number(y)
+    dense_rank(y)
+    percent_rank(y)
+    cume_dist(y)
+    ```
+
+## Ejercicios
+
+```{r, eval = FALSE, echo = FALSE}
+flights <- flights %>% mutate(
+  dep_time = hour * 60 + minute,
+  arr_time = (arr_time %/% 100) * 60 + (arr_time %% 100),
+  airtime2 = arr_time - dep_time,
+  dep_sched = dep_time + dep_delay
+)
+ggplot(flights, aes(dep_sched)) + geom_histogram(binwidth = 60)
+ggplot(flights, aes(dep_sched %% 60)) + geom_histogram(binwidth = 1)
+ggplot(flights, aes(air_time - airtime2)) + geom_histogram()
+```
+
+### Ejercicio 3
+
+Ahora mismo, las variables `dep_time` y `sched_dep_time` están en una forma que son fáciles de interpretar visualmente, pero es complicado hacer cálculos con ellas porque realmente no son números continuos. Conviértelas en una representación más adecuada, como el número de minutos desde medianoche.
+
+```{r mutateex1, exercise = TRUE}
+    
+```
+```{r mutateex1-solution}
+mutate(flights, dep_time = dep_time %/% 100 * 60 + dep_time %% 100,
+       sched_dep_time = sched_dep_time %/% 100 * 60 + sched_dep_time %% 100)
+```
+    
+<div id="mutateex1-hint">
+**Hint:** `423 %% 100` devuelve `23`, `423 %/% 100` devuelve `4`.
+</div>
+
+```{r mutateex1-check}
+"¡Buen trabajo!"
+```
+    
+### Ejercicio 4
+
+Compara `air_time` con `arr_time - dep_time`. ¿Qué ocurre? ¿Cómo se explica?
+    
+```{r mutateex2, exercise = TRUE}
+# flights <- mutate(flights, total_time = _____________)
+# flight_times <- select(airtime, total_time)
+# filter(flight_times, air_time != total_time)
+```
+```{r mutateex2-solution}
+flights <- mutate(flights, total_time = arr_time - dep_time)
+flight_times <- select(airtime, total_time)
+filter(flight_times, air_time != total_time)
+```
+
+```{r mutateex2-check}
+"¡Buen trabajo! No tiene sentido hacer cálculos con `arr_time` y `dep_time` hasta que conviertes los valores a minutos después de la medianoche (tal y como se hizo con `dep_time` y `sched_dep_time` en el ejercicio anterior)."
+```
+    
+### Ejercicio 5
+
+Encuentra los 10 vuelos con más retraso (`dep_delay`) usando una función de _ranking_.  Puedes leer la documentación de `min_rank()` para ayudarte.
+    
+```{r mutateex4, exercise = TRUE}
+    
+```
+```{r mutateex4-solution}
+?min_rank
+flights <- mutate(flights, delay_rank = min_rank(dep_delay))
+filter(flights, delay_rank <= 10)
+```
+    
+<div id="mutateex4-hint">
+**Pista:** Una vez que se calcula una posición (_ranking_), se puede filtrar los datos basándose en las posiciones devueltas.
+</div>
+    
+```{r mutateex4-check}
+"¡Excelente!"
+```
+ 
+ 
+## Resumir grupos de datos con summarise()
+
+### summarise()
+
+`summarise()` colapsa un _dataframe_ en una única fila de "resúmenes", que podemos elegir cómo calcular:
+
+```{r summarize}
+summarise(flights, delay = mean(dep_delay, na.rm = TRUE), 
+                  total =  sum(dep_delay, na.rm = TRUE))
+```
+
+(`na.rm = TRUE` significa que no se tengan en cuenta los valores no disponibles `NA` en el cálculo de la media ni de la suma.)
+
+Debe notarse que la sintaxis de `summarise()` es bastante similar a la de `mutate()`. Como ocurría con `mutate()`, le pasamos a `summarise()`:
+
+1. El nombre del dataframe qye transformar
+2. Una o más columnas que aparecerán en la salida transformada. Cada columna se define por la expresión que generará el contenido de la misma.
+
+La principal diferencia entre `summarise()` y `mutate()` es el tipo de función que se usa para generar las nuevas columnas. `mutate()` usa funciones que devuelven un vector completo de salidas (que se añade al dataframe original). `summarise()` usa funciones que devuelven un único valor (o _resumen_). Estos valores aparecerán en un nuevo dataframe con una única fila.
+
+### group_by()
+
+`summarise()` no es demasiado útil a menos que lo emparejemos con `group_by()`. `group_by()` cambia la unidad de análisis del dataframe: asigna observaciones en el dataframe a grupos separados, y le dice a `dplyr` que aplique las funciones a cada grupo de forma separada. `group_by()` agrupa observaciones que tienen las mismas combinaciones de valores para las variables que se le pasan a `group_by()`.
+
+Por ejemplo, el código con `summarise()` de más arriba calcula el retraso medio para todo el conjunto de datos. Si aplicamos exactamente el mismo código a un dataset que ha sido agrupado por fecha (es decir, las combinaciones únicas de `year`, `month`, y `day`), obtenemos el retraso medio por cada fecha. Haz click en "Run Code":
+
+```{r summarise, exercise = TRUE, exercise.eval = FALSE}
+by_day <- group_by(flights, year, month, day)
+summarise(by_day, delay = mean(dep_delay, na.rm = TRUE),
+                  total = sum(dep_delay, na.rm = TRUE))
+```
+
+```{r summarise-check}
+"¡Buen trabajo!"
+```
+
+
+### Ejercicio 6
+
+¿Qué aerolínea tiene los mayores retrasos (en promedio)? 
+    
+```{r summariseex4, exercise = TRUE}
+    
+```
+
+```{r summariseex4-solution}
+flights %>% 
+  group_by(carrier) %>% 
+  summarise(avg_delay = mean(dep_delay, na.rm = TRUE)) %>%
+  mutate(rank = min_rank(desc(avg_delay))) %>% 
+  filter(rank == 1)
+```
+    
+<div id="summariseex4-hint">
+**Pista:** Usa`min_rank(desc(avg_delay))` tpara ordenar `avg_delay` (por ejemplo) de forma que el retraso mayor reciba _ranking_ 1. 
+</div>
+
+```{r summariseex4-check}
+"¡Genial! Frontier airlines (`F9`) tenía el mayor retraso promedio."
+```
+
+Reto: ¿Se puede encontrar la peor combinación de aerolínea y aeropuerto? (Pista: pensad acerca de `flights %>% group_by(carrier, dest) %>% summarise(n())`)
+
+### Ejercicio 7
+
+Por cada avión, contar el número de vuelos que ocurren antes del primer gran retraso superior a 1 hora.
+    
+```{r summariseex5, exercise = TRUE}
+    
+```
+
+```{r summariseex5-solution}
+flights %>% 
+  filter(!is.na(dep_delay)) %>% 
+  group_by(tailnum) %>% 
+  mutate(big_delay = dep_delay > 60,
+         before = !cumany(big_delay)) %>% 
+  summarise(sum(before))
+```
+    
+<div id="summariseex5-hint">
+**Pista:** Una posible estrategia sería:
+* filtrar (eliminar) todas las filas donde `dep_delay` sea `NA`. 
+* entonces agrupar por avión (`tailnum` identifica a un avión concreto) 
+* crear una variable que testee si cada vuelo se retrasó más de una hora
+* crear una variable booleana que identifique los vuelos que ocurren antes del primer gran retraso, con `!cumany()`
+* sumar el número de "verdaderos" de la variable anterior
+</div>
+
+```{r summariseex5-check}
+"¡Buen trabajo! Éste era difícil. Asegúrate de entender cada uno de los pasos y funciones que aparecen."
+```
+
+### Agrupar por múltiples variables
+
+Cuando se agrupa por múltiples variables, cada _reusmen_ se aplica y elimina una capa del agrupamiento. Ejecuta el código de más abajo e inspecciona cada resultado para ver cómo el criterio de agrupamiento va cambiando (se puede ver en la prte de arriba del dataframe).
+
+```{r unwrap, exercise = TRUE}
+daily <- group_by(flights, year, month, day)
+(per_day <- summarise(daily, total = sum(dep_delay, na.rm = TRUE)))
+(per_month <- summarise(per_day, total = sum(total, na.rm = TRUE)))
+(per_year  <- summarise(per_month, total = sum(total, na.rm = TRUE)))
+```
+
+### Desagrupar
+
+Si necesitas eliminar las agrupaciones, y volver a operaciones en datos sin agrupar, usa `ungroup()`. 
+
+```{r echo = FALSE}
+daily <- group_by(flights, year, month, day)
+```
+
+```{r}
+daily <- ungroup(daily) # no está agrupado por fecha
+summarise(daily, total = sum(dep_delay, na.rm = TRUE))  # todos los vuelos
+```
+
+## Combinar múltiples operaciones
+
+### Múltiples pasos
+
+Imagina que queremos explorar la relación entre la distancia y el retraso medio por cada destino en el dataset `flights`. Usando lo que conocemos acerca de dplyr, podríamos escribir un código tal que:
+
+```{r, fig.width = 6, message = FALSE}
+by_dest <- group_by(flights, dest)
+delay <- summarise(by_dest,
+  count = n(),
+  dist = mean(distance, na.rm = TRUE),
+  delay = mean(arr_delay, na.rm = TRUE)
+)
+delay <- filter(delay, count > 20, dest != "HNL")
+```
+
+Veamos cómo hemos preparado los datos. Hay tres pasos:
+
+1.  Agrupar vuelos por destino.
+
+1.  Usar summarise para calcular la distancia, el retraso medio, y el número de vuelos.
+
+1.  Filtrar para eliminar puntos ruidosos y el aeropuerto de Honolulu, que está a casi el doble de distancia que el siguiente aeropuerto más cercano.
+
+Este código es un poco frsutrante de escribir porque tenemos que dar a cada dataframe intermedio un nombre, incluso a pesar de que no nos es de utilidad. Poner nombres es una tarea difícil, así que esto enlentece nuestro análisis.
+
+### Pipes
+
+Hay otra forma de resolver el mismo problema. Podemos convertir el código en una _secuencia de pasos_ con el operador _pipe_, `%>%`:
+
+```{r}
+delays <- flights %>% 
+  group_by(dest) %>% 
+  summarise(
+    count = n(),
+    dist = mean(distance, na.rm = TRUE),
+    delay = mean(arr_delay, na.rm = TRUE)
+  ) %>% 
+  filter(count > 20, dest != "HNL")
+```
+
+Este código se puede leer como: agrupa, después resume, después filtra. Así, una buena forma de "pronunciar" el operador `%>%` al leer código es "después".
+
+## Funciones útiles para summarise
+
+### Funciones agregadoras
+
+Puedes llegar lejos con medias y sumas, pero R proporciona muchas otras funciones útiles que utilizar con `summarise()`. Cada una de estas funciones actúa como una **función agregadora**: toma un vector de valores y devuelve un único valor. 
+
+Vamos a demostrar algunas de las funciones más útiles con este dataset, en el que se eliminan vuelos que no tienen ninguna información sobre retrasos (porque fueron cancelados).
+
+```{r}
+not_cancelled <- flights %>% 
+  filter(!is.na(dep_delay), !is.na(arr_delay))
+```
+
+*   **Medidas de localización**: hemos usado `mean(x)`, pero `median(x)` es también muy útil y más robusta. La media es la suma dividida por la longitud del vector, mientras que la mediana es un valor donde el 50% de `x` está por encima de él y el otro 50%, por debajo.
+    
+    A veces es útil combinar la agregación con la indexación lógica:
+    
+    ```{r}
+    not_cancelled %>% 
+      group_by(year, month, day) %>% 
+      summarise(
+        avg_delay1 = mean(arr_delay),
+        avg_delay2 = mean(arr_delay[arr_delay > 0]) # el retraso positivo medio
+      )
+    ```
+
+*   **Medidas de dispersión**: `sd(x)` (desviación típica, la más común de las medidas de dispersión), `IQR(x)` (rango intercuartílico), `mad(x)` (desviación mediana absoluta). Las dos últimas son más robustas, especialmente indicadas en el caso de datasets que pudieran contener _outliers_ o valores extremos.
+    
+    ```{r}
+    # ¿Por qué es la distancia a alguos destinos más variable que a otros?
+    not_cancelled %>% 
+      group_by(dest) %>% 
+      summarise(distance_sd = sd(distance)) %>% 
+      arrange(desc(distance_sd))
+    ```
+  
+*   **Medidas de _ranking_**: `min(x)`, `quantile(x, 0.25)`, `max(x)`. Los percentiles (quantile) son una generalización de la mediana. 
+
+    ```{r}
+    # ¿Cuándo parten el primer y último vuelo de cada día?
+    not_cancelled %>% 
+      group_by(year, month, day) %>% 
+      summarise(
+        first = min(dep_time),
+        last = max(dep_time)
+      )
+    ```
+  
+*   **Medidas de posición**: `first(x)`, `nth(x, 2)`, `last(x)`. Funcionan como `x[1]`, `x[2]`, y `x[length(x)]` pero perimten definir un valor por defecto para cuando la posición no existe (por ejemplo, cuando se intenta acceder al tercer elemento de un grupo que solo tiene dos elementos). Por ejemplo, podemos encontrar la primera y última salida de cada día:
+    
+    ```{r}
+    not_cancelled %>% 
+      group_by(year, month, day) %>% 
+      summarise(
+        first_dep = first(dep_time), 
+        last_dep = last(dep_time)
+      )
+    ```
+    
+    Estas funciones son complementarias a filtrar en _rankings_. Al filtrar, obtenemos todas las variables, con cada observación en una fila separada:
+    
+    ```{r}
+    not_cancelled %>% 
+      group_by(year, month, day) %>% 
+      mutate(r = min_rank(desc(dep_time))) %>% 
+      filter(r %in% range(r))
+    ```
+
+*   **Recuentos**: `n()`, que no tiene argumentos, devuelve el tamaño del grupo actual, aunque también se puede usar para hacer recuento en otras cantidades. Para contar el número de valores no perdidos, se usa `sum(!is.na(x))`. Para contar el número de valores únicos (distintos), se usa `n_distinct(x)`.
+    
+    ```{r}
+    # ¿Qué destinos están operados por más aerolíneas?
+    not_cancelled %>% 
+      group_by(dest) %>% 
+      summarise(carriers = n_distinct(carrier)) %>% 
+      arrange(desc(carriers))
+    ```
+  
+*   **Recuentos y proporciones de valores lógicos**: `sum(x > 10)`, `mean(y == 0)`. Cuando se usa con funciones que aceptan argumentos numéricos, `TRUE` se convierte en 1 y `FALSE` en 0. Esto hace que `sum()` y `mean()` sean muy útiles: `sum(x)` devuelve el número de `TRUE` en `x`, y `mean(x)` devuelve la proporción.
+    
+    ```{r}
+    # ¿Cuántos vuelos salieron antes de las 5am? (normalmente son vuelos
+    # retrasados del día anterior)
+    not_cancelled %>% 
+      group_by(year, month, day) %>% 
+      summarise(n_early = sum(dep_time < 500))
+    
+    # ¿Qué proporción de vuelos se ven retrasados por más de una hora?
+    not_cancelled %>% 
+      group_by(year, month, day) %>% 
+      summarise(hour_perc = mean(arr_delay > 60))
+    ```
+
+
+### count()
+
+Los recuentos son tan útiles que dplyr proporciona una simple función auxiliar si todo lo que queremos es un recuento:
+    
+```{r}
+not_cancelled %>% 
+  count(dest)
+```
+    
+    Podemos, opcionalmente, proporcionar una variable de ponderación. Por ejemplo, se podría usar esta variable _wt_ para "contar" (sumar) el número total de millas que un avión voló:
+    
+```{r}
+not_cancelled %>% 
+  count(tailnum, wt = distance)
+```
+
+### Ejercicio 8
+
+Inventa otra aproximación que nos dé la misma salida que `not_cancelled %>% count(dest)` y `not_cancelled %>% count(tailnum, wt = distance)` (sin usar `count()`).
+    
+```{r summariseex2, exercise = TRUE}
+    
+```
+```{r summariseex2-solution}
+not_cancelled %>% 
+  group_by(dest) %>% 
+  summarise(n = n())
+not_cancelled %>% 
+  group_by(tailnum) %>% 
+  summarise(n = sum(distance))
+```
+    
+<div id="summariseex2-hint">
+**Pista:** Considera las herramientas a tu disposición: `group_by()`, `summarise()`, `n()`, `sum()`, y `?count` 
+</div>
+
+```{r summariseex2-check}
+"¡Excelente! Éste tenía truco, pero ahora puedes ver que `count()` es un atajo para `group_by()` + `summarise()` + `n()` (o `sum()`)."
+```
+
+### Ejercicio 9
+
+¿Qué hace el argumento `sort` de `count()`? ¿Cuándo lo podrías usar?
+
+```{r summariseex6, exercise = TRUE}
+?count    
+```
+
+### Ejercicio 10
+
+Mira el número de vuelos cancelados cada día. ¿Hay algún patrón? ¿Está la proporción de vuelos cancelados relacionada con el retraso medio?
+    
+```{r summariseex3, exercise = TRUE}
+# Tarea 1
+# comenzar con una variable que muestre el día del año
+# flights %>% 
+#   mutate(date = as.Date(paste(year, month, day, sep = "-"))) %>% 
+# crear una variable que muestre si un vuelo está cancelado
+# agrupar por día
+# crear un resumen contrando el número de vuelos cancelados
+
+# Tarea 2
+# recrear los datos agrupados previos
+# crear un resumen al tomar la media de la variable de si un vuelo está cancelado
+# ...así como el retraso medio
+```
+
+```{r summariseex3-solution}
+flights %>% 
+  mutate(date = as.Date(paste(year, month, day, sep = "-"))) %>%  
+  mutate(cancelled = is.na(dep_delay) | is.na(arr_delay)) %>% 
+  group_by(date) %>% 
+  summarise(n = sum(cancelled)) 
+    
+flights %>% 
+  mutate(date = as.Date(paste(year, month, day, sep = "-"))) %>%  
+  mutate(cancelled = is.na(dep_delay) | is.na(arr_delay)) %>% 
+  group_by(date) %>% 
+  summarise(prop = mean(cancelled), avg_delay = mean(dep_delay, na.rm = TRUE)) 
+```
+    
+<div id="summariseex3-hint">
+**Pista:** No olvides usar `na.rm = TRUE` donde haga falta. 
+</div>
+
+```{r summariseex3-check}
+"¡Perfecto!"
+```
+
+
+    
+
