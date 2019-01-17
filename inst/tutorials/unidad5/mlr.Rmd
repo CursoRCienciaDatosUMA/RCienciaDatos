@@ -1,0 +1,554 @@
+---
+title: "Tutorial de `mlr`"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(tidyverse)
+
+tutorial_options(exercise.timelimit = 60)
+knitr::opts_chunk$set(error = TRUE)
+```
+
+```{r, echo = FALSE, message=FALSE}
+library("mlr")
+library("BBmisc")
+library("ParamHelpers")
+set.seed(123)
+```
+
+## Introducción
+
+En este tutorial, aprenderemos a utilizar el paquete `mlr` para realizar tareas de Machine Learning:
+
+- Aprenderemos a definir una tarea a partir de los datos del problema.
+- Aprenderemos a construir un método de aprendizaje computacional.
+- Seremos capaces de entrenar dicho método y predecir sus resultados sobre nuevos datos.
+- Aprenderemos a comparar diversos métodos entre sí para un mismo _dataset_.
+
+### El paquete `mlr`
+
+[mlr](https://github.com/mlr-org/mlr)
+
+`R` no define un interfaz estándar para todos los algoritmos de Machine Learning presentes en los distintos paquetes. Eso implica que, para realizar experimentos de aprendeizaje computacional _no triviales_, hay que escribir muchas líneas de código para las distintas partes del proceso, proceso que es propenso a errores.
+
+Además, cada algoritmo tiene su infraestructura propia para optimizar sus hiperparámetros, seleccionar atributos, pre- y post-procesar los datos y comparar diferentes modelos de forma estadística. Asimismo, conforme los problemas crecen, y se hacen computacionalmente intensivos, cada uno tiene su propia esrategia de paralelización. En muchos casos, aprender a usar un algoritmo nuevo conlleva mucho tiempo de práctica y tener buenas habilidades de programación.
+
+El paquete `mlr` proporciona toda esta infraestructura, de forma que el usuario solo se tiene que concentrar en realizar los experimentos. Este _framework_ proporciona métodos supervisados como clasificación o regresión, junto con sus métodos de optimización y evaluación, y métodos no supervisados como _clustering_.
+
+### Paquetes de R que vamos a usar
+
+El paquete [mlbench](https://cran.r-project.org/package=mlbench) contiene una colección de problemas de prueba, tanto artificiales como reales, que incluyen, por ejemplo, algunos de los datasets del repositorio UCI.
+
+Por otro lado, usaremos los paquetes:
+
+- class
+- clue
+- rFerns
+- clusterSim
+
+que incluyen algunos de los métodos más comunes de aprendizaje computacional.
+
+Y, por supuesto, el `tidyverse`!
+
+## _Tasks_ - Tareas
+
+### Tareas
+
+Las tareas de aprendizaje encapsulan, en el paquete `mlr`, tanto los datos como informción relevante adicional acerca de un problema de aprendizaje automático.
+
+Por ejemplo, almacena el nombre de la variable de clase en problemas supervisados, o la existencia de datos perdidos (_missing_), entre otras características.
+
+### Tipos y creación de tareas
+
+Las tareas se organizan de forma jerárquica, veamos las más comunes:
+
+* `RegrTask` para problemas de regresión,
+* `ClassifTask` para problemas de clasificación binaria (dos clases) o multi-clase,
+* `ClusterTask` para análisis cluster.
+
+La forma de crear una tarea de cada uno de los tipos anteriores es con las funciones:
+
+- `makeRegrTask`
+- `makeClassifTask`
+- `makeClusterTask`
+
+Estas funciones requieren todas de, al menos, dos parámetros:
+
+- Un identificador (argumento ``id``) que, si no lo proporciona el usuario, es automáticamente generado usando el nombre de la variable de los datos.
+- Un dataframe (argumento ``data``), con los datos necesarios para la tarea de aprendizaje.
+
+Dependiendo del tipo de problema a resolver, es posible que se necesiten argumentos adicionales.
+
+### Tareas de Regresión
+
+Para tareas de aprendizaje supervisado, como regresión (o como clasificación), además del argumento `data`, se debe especificar el nombre de la variable `target`, la que se desea _estimar_ (bien sea continua en regresión o categórica en clasificación).
+
+```{r}
+data(BostonHousing, package = "mlbench")
+regr_task <- makeRegrTask(id = "bh", 
+                          data = BostonHousing, 
+                          target = "medv")
+regr_task
+```
+
+
+Como se puede observar, la tarea almacena el tipo de problema de aprendizaje e información básica acerca del _dataset_, el tipo de los atributos (vectores numéricos, factores, factores ordenados), el número de observaciones, o si hay valores perdidos.
+
+**Ejercicio**
+
+Usando como modelo el código anterior, crear una tarea de regresión con `mlr` para estimar la variable `weight` del _dataset_ `ChickWeight`, que está contenido en el paquete `datasets`. Almacenar el resultado en una variable llamada `chicken_task`.
+
+```{r regre_task, exercise = TRUE, eval.exercise = TRUE}
+data(BostonHousing, package = "mlbench")
+regr_task <- makeRegrTask(id = "bh", 
+                          data = BostonHousing, 
+                          target = "medv")
+regr_task
+```
+
+
+### Tareas de Clasificación
+
+Al crear tareas de clasificación, se sigue el mismo esquema, simplemente el tipo de datos de la variable a estimar es diferente.
+
+Para clasificación, la columna `target` debe ser una variable de tipo `factor`.
+
+En el siguiente ejemplo, se define una tarea de clasificación para el _dataset_ `BreastCancer` incluido en el paquete `mlbench`, excluyendo la variable ``Id`` de todo el proceso (ya que se sobreentrenaría el modelo).
+
+```{r}
+data(BreastCancer, package = "mlbench")
+df <- BreastCancer %>% select(-Id)
+classif_task <- makeClassifTask(id = "BreastCancer", 
+                                data = df, 
+                                target = "Class")
+classif_task
+```
+
+
+En clasificación binaria, se suele referir a las dos clases como _clase positiva_ y _clase negativa_, siendo la _positiva_ la que supone mayor interés.
+
+Esto es relevante para las medidas del desempeño, como la _tasa de verdaderos positivos_ (*true positive rate*) o el análisis ROC.
+
+Por defecto, el paquete `mlr` permite configurar algunas opciones y mostrar gráficas de resultados para la _clase positiva_ solamente.
+
+`makeClassifTask()`, por defecto, selecciona el primer nivel del factor de la variable de clase como la _clase positiva_, siendo, en el ejemplo anterior del _dataset_ `BreastCancer`, ``benign``.
+
+Se puede seleccionar otra clase como positiva de forma manual, como sigue:
+```{r classif_task, exercise = TRUE, exercise.eval = TRUE}
+classif_task <- makeClassifTask(id = "BreastCancer", 
+                                data = df, 
+                                target = "Class", 
+                                positive = "malignant")
+```
+
+**Ejercicio**
+
+Usando como modelo el código anterior, crear una tarea de clasificación para el _dataset_ `Glass` (en el paquete `datasets`), para estimar la variable `Type`. Dejar como clase positiva la que salga por defecto, y almacenar el resultado en una variable llamada `glass_task`.
+
+```{r clasi_task, exercise = TRUE, eval.exercise = TRUE}
+data(BreastCancer, package = "mlbench")
+df <- BreastCancer %>% select(-Id)
+classif_task <- makeClassifTask(id = "BreastCancer", 
+                                data = df, 
+                                target = "Class")
+classif_task
+```
+
+
+### Análisis cluster
+
+Como el análisis cluster es no supervisado, el único argumento obligatorio para construir una tarea de análisis cluster es `data`.
+
+A continuación, crearemos una tarea de aprendizaje (clustering) para el _dataset_ `mtcars()`.
+
+```{r results = "hide"}
+data(mtcars, package = "datasets")
+cluster_task <- makeClusterTask(data = mtcars)
+```
+
+### Modificar una tarea
+
+En ocasiones, es más sencillo modificar una tarea existente que crear una nueva desde cero. El paquete `mlr` proporciona diversas funciones para modificar una tarea:
+```{r results = "hide"}
+# Seleccionar únicamente unas observaciones o variables
+cluster_task <- subsetTask(cluster_task, subset = 4:17)
+# Puede ocurrir, especialmente después de seleccionar 
+# observaciones, que alguna variable quede constante. 
+# Estas variables deberían eliminarse.
+removeConstantFeatures(cluster_task)
+# Tipificar variables numéricas
+task <- normalizeFeatures(cluster_task, method = "range")
+```
+
+
+## _Learners_ - Métodos
+
+### Interfaz
+
+En el paquete `mlr`, se proporciona una interfaz unificada para acceder a muchos métodos de Machine Learning populares, implementados en otros paquetes de `R` por lo general.
+
+Existen interfaces para problemas de clasificación, regresión y _clustering_, entre otros.
+
+### Construir un _learner_
+
+Se puede generar un _learner_ en `mlr` llamando a la función `makeLearner()`.
+
+Esta función, que ejerce las veces de _constructor_ del método deseado, requiere como argumento el método de aprendizaje que se desea utilizar.
+
+Además, sirve para:
+
+* Configurar los _hiperparámetros_ del método (son los parámetros que no se _aprenden_, sino los que definen el método en sí, como el número de capas y neuronas en una red neuronal, o el número de árboles en un _random forest_).
+* Controlar la salida para la posterior predicción (para clasificación, se puede elegir entre devolver la clase predicha o las probabilidades de pertenencia a cada clase)
+* Asignar un ID para identificar el objeto creado.
+
+
+```{r size = "footnotesize"}
+# Árbol de clasificación, configurado para
+# predecir las probabilidades
+classif_lrn <- makeLearner("classif.randomForest", 
+                           predict.type = "prob", 
+                           fix.factors.prediction = TRUE)
+# Gradient boosting machine para regresión, especificando
+# los hiperparámetros en una lista
+regr_lrn <- makeLearner("regr.gbm", 
+                        par.vals = list(n.trees = 500, 
+                                        interaction.depth = 3))
+# K-means con 5 clusters
+cluster_lrn <- makeLearner("cluster.kmeans", 
+                           centers = 5)
+```
+
+
+El primer argumento es el algoritmo a usar. La convención es usar ``classif.<nombre_del_método_R>`` para métodos de clasificación, ``regr.<nombre_del_método_R>`` para regresión, y ``cluster.<nombre_del_método_R>`` para métodos de _clustering_.
+
+Los valores de los hiperparámetros se pueden especificar usando una lista de valores con el argumento ``par.vals``, o, simplemente, añadiéndolos a la llamada de la función. 
+
+Es argumento ``fix.factors.prediction = TRUE`` es recomendable, ya que permite realizar la predicción correcta en ciertas ocasiones con casos extremos.
+
+Le podemos echar un vistazo a uno de los métodos que hemos creado:
+```{r}
+classif_lrn
+```
+
+Un _learner_ contiene las propiedades del método, es decir, qué tipos de variables puede manejar, qué clase de salidas está disponible durante la predicción, o si se soportan problemas _multiclase_, observaciones ponderadas o valores perdidos.
+
+### Lista de métodos
+
+Si se desea listar los métodos disponibles para una tarea concreta, se utiliza la función `listLearners()`.
+
+```{r}
+# Lista todos los métodos en mlr
+lrns <- listLearners()
+head(lrns[c("class", "package")])
+
+# Lista los clasificadores que devuelven
+# probabilidades de cada clase
+lrns <- listLearners("classif", properties = "prob")
+head(lrns[c("class", "package")])
+
+# Lista de métodos que pueden aplicarse 
+# a una tarea concreta
+lrns <- listLearners(regr_task)
+head(lrns[c("class", "package")])
+```
+
+**Ejercicio**
+
+Listar los métodos que se pueden aplicar a la tarea de regresión del _dataset_ `BostonHousing` y la lista de los que se pueden aplicar a la tarea de clasificación del _dataset_ `Glass` construido antes.
+
+```{r task_learners, exercise = TRUE, eval.exercise = TRUE}
+lrns <- listLearners(regr_task)
+head(lrns[c("class", "package")])
+```
+
+Si en la función `listLearners()` añadimos el argumento `create = TRUE`, no nos devuelve la lista de métodos, sino que crea una lista con los objetos necesarios (solo aquellos que estén realmente instalados) y así podríamos utilizarlos directamente.
+
+```{r}
+lrns <- listLearners(regr_task, create = TRUE)
+head(lrns)
+```
+
+
+## Entrenamiento
+
+Entrenar un método significa ajustar un modelo a un _dataset_ en particular. En `mlr`, esto se hace llamando a la función `train()` con un `Learner` y una  `Task()`.
+
+Pongamos como ejemplo de clasificación la tarea de clasificar usando _random ferns_ del paquete `rFerns` el _dataset_ `iris`:
+
+```{r}
+# Generamos la tarea
+task <- makeClassifTask(data = iris, target = "Species")
+
+# Generamos el método
+lrn <- makeLearner("classif.rFerns")
+
+# Lo entrenamos
+iris_model <- train(lrn, task)
+iris_model
+```
+
+En el ejemplo anterior, no es absolutamente necesario crear explícitamente el _learner_. Como regla general, habría que crearlo con `makeLearner()` expresamente si se desea cambiar algunos de los _hiperparámetros_ por defecto del método.
+
+Por otro lado, `train()` y otras funciones también aceptan el nombre de la clase y llaman a `makeLearner()` internamente con los parámetros por defecto.
+
+```{r}
+iris_model <- train("classif.rFerns", task)
+iris_model
+```
+
+La función `train()`, por tanto, ejerce de interfaz al entrenamiento de todo tipo de métodos, independientemente del tipo de problema de aprendizaje (_clustering_, _regresión_ o _clasificación_).
+
+**Ejercicio**
+
+Entrenar un modelo de regresión sobre `chicken_task`. Primero habrá que determinar qué modelos están disponibles para dicha tarea, y después entrenar uno de ellos. Almacenar el modelo en la variable `chicken_model`.
+
+```{r chicken_model, exercise = TRUE, eval.exercise = TRUE}
+
+
+```
+    
+    <div id="chicken_model-hint">
+    **Pista:** Es momento de usar `listLearners()` y después `train()`.
+    </div>
+
+**Ejercicio**
+
+Entrenar un modelo de regresión sobre la tarea `glass_task`. Determinar en primera instancia qué modelos de clasificación son válidos para dicha tarea, y después seleccionar uno de dichos _learners_ para crear y entrenar el modelo. Almacenar el modelo en la variable `glass_model`.
+
+```{r glass_model, exercise = TRUE, eval.exercise = TRUE}
+
+
+```
+
+  <div id="glass_model-hint">
+    **Pista:** Es momento de usar `listLearners()` y después `train()`.
+  </div>
+
+
+### Acceder a los modelos entrenados
+
+La función `train()` devuelve un objeto que contiene en su interior el modelo ya entrenado. Para extraerlo, se usa la función `getLearnerModel()`.
+
+En el siguiente ejemplo, vamos a extraer el modelo ya entrenado del _clustering_ del _dataset_ iris que mencionamos antes:
+
+```{r}
+getLearnerModel(iris_model)
+```
+
+**Ejercicio**
+
+Visualizar el modelo, usando lo aprendido, obtenido para los datasets `Glass` y `ChickenWeight` que hemos creado en los ejercicios anteriores.
+```{r getlearner, exercise = TRUE, eval.exercise = TRUE}
+
+
+```
+    
+    <div id="getlearner-hint">
+    **Pista:** Aplicar `getLearnerModel()` a `glass_model` y a `chicken_model`.
+    </div>
+
+
+
+### Opciones más avanzadas
+
+Por defecto, el _dataset_ al completo se usa para el entrenamiento. Sin embargo, si se desea separar el dataset en un conjunto de entrenamiento y otro de test, el argumento `subset` de la función `train()` permite indicar cuáles de las observaciones usar para el entrenamiento.
+
+Por ejemplo, podemos ajustar un modelo de regresión lineal (correspondiente a `regr.lm`) al _dataset_ `BostonHousing`, seleccionando, de forma aleatoria, 1/3 de las observaciones para el entrenamiento.
+```{r}
+# Número total de observaciones
+n <- getTaskSize(regr_task)
+# Tomar 1/3 de la muestra
+train_set <- sample(n, size = n/3)
+# Entrenar el método
+bh_model <- train("regr.lm", regr_task, subset = train_set)
+bh_model
+```
+
+## Predicción
+
+En aprendizaje supervisado, predecir es estimar los valores de la variable objetivo (la que se ha marcado como `target` al crear la tarea) en nuevas observaciones.
+
+En general, basta con llamar a la función `predict()` con el objeto devuelto por `train()` y pasando los nuevos datos para los que se quiere la predicción. Hay dos formas de pasar los datos:
+
+* Usar el argumento `task` para pasar una tarea creada con una de las funciones de creación de tareas.
+* Pasar un `data.frame` usando el argumento `newdata`.
+
+Además, es posible usar el argumento `subset` de `predict()` para especificar qué observaciones usar al predecir.
+
+Por ejemplo, tomemos el conjunto de datos `BostonHousing` y lo vamos a usar para entrenar con el 80% de los datos y testeamos con el 20% restante:
+```{r}
+# Número de observaciones
+n <- getTaskSize(regr_task)
+
+# Creamos los conjuntos de entrenamiento y de test:
+# 80% aleatorio de los datos para entrenar
+train_set <- sample(n, size = round(0.8 * n))
+# El restante para testear
+test_set <- setdiff(1:n, train_set)
+
+# Entrenamos con el 80%:
+model <- train("regr.lm", 
+               task = regr_task, 
+               subset = train_set)
+
+# Testeamos en el otro 20%:
+prediction <- predict(model, 
+                      task = regr_task, 
+                      subset = test_set)
+```
+
+El objeto `prediction` de más arriba encierra dentro un _dataframe_ cuyas columnas son: 
+
+- Un `id` para saber a qué observación del _dataset_ original corresponde la predicción.
+- En caso de aprendizaje supervisado, una columna `truth` con el valor real de la variable a predecir.
+- Una columna `response` con la predicción realizada: la clase predicha en problemas de _clasificación_ o el valor numérico estimado en problemas de _regresión_.
+
+```{r}
+prediction %>% 
+  as.data.frame() %>% 
+  head()
+```
+
+**Ejercicio**
+
+Para el dataset `ChickenWeight`, repetir el proceso anterior de: dividir en conjuntos de entrenamiento y de test, entrenar únicamente con el conjunto de entrenamiento y mostrar las primeras filas de la predicción sobre el conjunto de test.
+
+```{r eval_chicken, exercise = TRUE, eval.exercise = TRUE}
+
+```
+
+**Ejercicio**
+
+Para el dataset `Glass`, repetir el proceso anterior de: dividir en conjuntos de entrenamiento y de test, entrenar únicamente con el conjunto de entrenamiento y mostrar las primeras filas de la predicción sobre el conjunto de test.
+
+```{r eval_glass, exercise = TRUE, eval.exercise = TRUE}
+
+```
+
+### Comprobar el desempeño del modelo
+
+Cuando el aprendizaje es supervisado y se conoce, del conjunto de test, los valores reales de la variable a predecir, podemos medir el desempeño del modelo entrenado:
+
+- Si es clasificación, podemos medir la precisión, o proporción de observaciones clasificadas correctamente.
+- En problemas de regresión, es común medir el error cuadrático medio.
+
+Las funciones en `R` para calcular dichos valores son:
+```{r}
+accuracy <- function(actual, predicted) {
+  
+  sum(actual == predicted) / length(predicted) * 100
+  
+}
+
+rmse <- function(actual, predicted) {
+  
+  (actual - predicted) ^ 2 %>% mean() %>% sqrt()
+  
+}
+```
+
+** Ejercicio **
+
+Sobre los datos estimados en los ejercicios anteriores, calcular el error cuadrático medio en los resultados del problema de regresión (`ChickenWeight`) y la precisión en el problema de clasificación (`Glass`).
+
+```{r eval_problems, exercise = TRUE, eval.exercise = TRUE}
+
+```
+    
+    <div id="eval_problems-hint">
+    **Pista:** `actual` debe ser la columna `truth` del objeto `prediction`, mientras que `predicted` es la columna `response`.
+    </div>
+
+
+### Clasificación: Matriz de confusión
+
+En el caso particular de problemas de clasificación, es común generar una matriz de confusión, mediante una llamada a la función `calculateConfusionMatrix()`.
+
+Las columnas representan los valores estimados y las filas son las clases reales.
+
+Por tanto, el número de observaciones clasificadas correctamente estarán en la diagonal principal de dicha matriz, mientras que las incorrectas están fuera de la diagonal.
+
+**Ejercicio**
+
+Para el problema de clasificación del _dataset_ `Glass`, encontrar la matriz de confusión.
+
+```{r cm, exercise = TRUE, eval.exercise = TRUE}
+
+```
+
+## Ajuste de hiperparámetros
+
+Muchos algoritmos de aprendizaje computacional tienen hiperparámetros que necesitan ser especificados. Si los selecciona el usuario, se pueden especificar mediante la llamada apropiada a la función `makeLearner()`.
+
+En otras ocasiones, los hiperparámetros óptimos para un problema no son obvios y es preferible realizar un ajuste automático que identifique los valores que conlleven el mejor desempeño.
+
+El primer paso es determinar qué hiperparámetros podemos ajustar en el método que queremos testear. Para ello, usamos la función `getLearnerParamSet()`. 
+
+Supongamos que el método elegido es `classif.gbm`, para la tarea de clasificación de nuestros ejemplos (`task` para el _dataset_ `iris`). Entonces los parámetros son:
+```{r}
+getLearnerParamSet("classif.gbm")
+```
+
+Como se puede observar, existen numerosos parámetros que podemos modificar. Para nuestros propósitos, consideremos algunos de los parámetros numéricos que podrían influir en el desempeño del clasificador (`distribution`, `n.trees` y `shrinkage`). Podemos observar cuáles son los valores por defectos de esos parámetros, para comprender cuál es la magnitud de las posibles alternativas a considerar.
+
+### Definir el espacio de búsqueda
+
+Definimos el espacio de exploración de parámetros a partir de los que deseamos modificar, usando la función `makeParamSet()`:
+```{r}
+param_set <- makeParamSet(
+  makeDiscreteParam("distribution", 
+                    values = "multinomial"),
+  makeDiscreteParam("n.trees", values = seq(100, 1000, by = 100)),
+  makeNumericParam("shrinkage", lower = 0.001, upper = 0.1)
+)
+```
+
+Con las funciones `makeDiscreteParam()` y `makeNumericParam()` definimos los posibles valores, discretos o continuos, que testear. 
+
+El siguiente paso es decirle al método cómo combinar los valores del `param_set` que se haya definido. Para ello, usamos el método `makeTuneControlGrid()`:
+```{r}
+ctrl <- makeTuneControlGrid(resolution = 15L)
+```
+
+Este mecanismo realiza una _búsqueda grid_, es decir, realiza todas las posibles combinaciones de los valores de los parámetros definidos con anterioridad. Para las variables numéricas (no discretas), se le ha indicado que tome 15 valores en el intervalo indicado.
+
+
+### Definición del método de evaluación
+
+El método más común para comparar las diversas ejecuciones es la validación cruzada, que la especificamos usando
+```{r}
+resampling_cv <- makeResampleDesc("CV", iters = 3L)
+```
+
+`"CV"` indica que se realizará validación cruzada, con `iters = 3` estratos.
+
+### Comparación
+
+Para realizar la comparación y búsqueda del mejor set de parámetros, usamos la función `tuneParams()`:
+```{r}
+res <- tuneParams("classif.gbm", 
+                  task = task, 
+                  resampling = resampling_cv, 
+                  par.set = param_set, 
+                  control = ctrl, 
+                  show.info = FALSE)
+res
+```
+
+De esta forma, tras ejecutar el método con todas las combinaciones de parámetros, nos devuelve el conjunto óptimo de hiperparámetros y el valor del error cometido por dicho _set_.
+
+Si se deseara construir un nuevo _learner_ con esos parámetros, el siguiente comando toma los valores del resultado anterior y los copia en la creación de un nuevo método:
+```{r}
+new_learner <- setHyperPars(makeLearner("classif.gbm"), par.vals = res$x)
+```
+
+**Ejercicio**
+
+Repetir todo el proceso para el clasificador `classif.knn` y la tarea `glass_task`, encontrar el mejor conjunto de parámetros y el error cometido por el mismo.
+
+```{r hyperpars, exercise = TRUE, eval.exercise = TRUE}
+
+```

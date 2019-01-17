@@ -1,0 +1,862 @@
+---
+title: "Fundamentos de R"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+
+```{r setup, include=FALSE}
+library(learnr)
+library(tidyverse)
+
+tutorial_options(exercise.timelimit = 60)
+knitr::opts_chunk$set(error = TRUE)
+```
+
+## Bienvenida
+
+En este tutorial aprenderemos:
+
+- El uso y creación de variables, y sus tipos básicos de datos.
+- Estructuras básicas de datos: vectores (y sus operaciones más comunes), factores, listas, matrices y _dataframes_.
+- Creación de funciones y las funciones predefinidas más usuales (aritméticas, lógicas, estadísticas).
+- Las estructuras de control y de flujo de un _programa_.
+- Programación funcional, desde la familia de funciones `*apply()` hasta las más modernas `map()`
+
+## `R` como calculadora
+
+En la consola de R tenemos una potente calculadora. 
+
+```{r,eval=TRUE}
+2 + 1/3
+pi + pi/2
+cos(pi/3)
+1 / 2 + 1
+1 / (2 + 1)
+sqrt(2) + (5 + sqrt(3))/2
+```
+
+Los resultados los podemos guardar en una variable usando ``<-``. Podríamos usar el símbolo ``=``.
+```{r,eval=TRUE}
+resul <- sqrt(2) + (5 + sqrt(3))/2
+resul2 = resul + 5
+```
+
+El origen del uso de ``<-`` viene de las tuberias (pipeline) en algunos sistemas operativos y lenguajes de programación y es la usada en el lenguaje R casi por convenio. 
+
+R en la primera  orden evalúa todo lo que hay a la derecha de ``<-``  (debe ser una operación válida) y el resultado se almacena en el objeto *resul* que será del tipo de datos del resultado  de la parte derecha. 
+
+
+## Variables
+
+- Los nombres de las variables deben empezar con una letra y pueden contener letras, números, ``_`` y  ``.``.  
+- Usa nombres descriptivos en tu programa.
+- Puedes usar múltiples palabras enlazadas con los símbolos. 
+
+```{r,eval=FALSE}
+una_variable_posible
+UnaVariablePosible
+una.variable.posible
+mi.media
+usa.siempre.el.mismo.convenio.para.tus.nombres
+```
+
+**Ejercicio**
+Usando lo aprendido, crea una variable `media` que calcule la media geométrica de dos variables, que se deben definir también, `a` y `b`, cuyos valores son, respectivamente, 7 y 13.
+```{r variables, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+
+### Tipos básicos
+
+
+La función `class` nos dice de qué tipo es cada variable o constante en R. 
+
+```{r,eval=FALSE}
+# Números enteros
+edad <- 45L
+class(edad)
+# Números reales
+peso <- 76.8
+class(peso)
+# Cadenas de caracteres
+mi.cadena <- "Control de peso"
+# Números complejos
+compl1 <- 2+3i
+class(compl1)
+# raw: números binarios - raw bytes
+b1 <- raw(2) 
+class(b1)
+```
+
+
+### Comprobación de tipos
+
+Cuando usamos una función de un paquete nos devolverá uno o varios valores y lo primero a realizar será averiguar qué tipos de datos nos ha devuelto la función.
+
+Existe una familia de funciones para comprobar distintos tipos. Comienzan con **is.** seguido de un tipo de datos. La orden comprobará si la variable es de ese tipo de datos. 
+
+De esta forma: 
+
+- **is.numeric**(variable): testea si la variable es numérica 
+- **is.integer**(variable): testea si la variable es  entera
+- **is.logical**(variable): testea si la variable es  lógica
+- ...
+
+
+Es bastante frecuente tener que cambiar el tipo de datos de una variable. A veces esa conversión es automática.
+
+Existe una familia de funciones para realizar la conversión. C       0omienzan con **as.** seguido del tipo *al que queremos convertir* la variable. 
+
+De esta forma: 
+
+- **as.numeric**(variable): convierte a variable numérica 
+- **as.integer**(variable): convierte a variable entera
+- **as.logical**(variable): convierte a variable lógica
+- ...
+
+**Ejercicio**
+Crear variables de tipo numérico, entero, booleano y cadena de caracteres, usar la función `class()` para determinar la clase que nos devuelve `R` y efectuar todas las posibles conversiones de tipos de dichas variables, incluso aquellas que probablemente no tengan sentido.
+
+```{r tipos, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+
+## Estructuras de datos
+
+Resumimos las estructuras de datos no básicas más importantes atendiendo a su dimensión: 
+
+- unidimensionales: Vector, Lista.
+- dos dimensiones: Matriz, Data frame
+- n-dimensionales: Array
+
+En este curso por la limitación de tiempo nos centramos en las estructuras de 1 y 2 dimensiones. 
+
+### Vectores
+
+Es la estructura de datos básica en R. Muchas otras estructuras de datos usan los vectores internamente.  Todos los elementos que forman parte del vector deben tener el mismo tipo básico (entero, numérico, carácter, lógico,...).
+
+El método principal para construir un vector es el operador `c()` (**c**ombine - combinar):
+
+```{r}
+# ; separa dos comandos en la misma línea
+x <- c(1, 5, 6);x
+y <- c(2, 4);y
+z <- c(x,y);z
+```
+
+
+Los vectores atómicos son siempre de una dimensión. Si anidamos, R aplana (flat) los datos. 
+
+```{r,eval=TRUE}
+v1 <- c(1,c(2,c(3,4,5))); v1
+# es lo mismo que
+v2 <- c(1,2,3,4,5);v2
+v3 <- c(v1,c(v2));v3
+```
+ 
+El comando **length()** calcula la longitud de un vector. 
+
+**Ejercicio**
+Calcula la longitud de `v1`, `v2` y `v3`.
+```{r length, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+También podemos crear vectores usando las funciones `seq()` (para crear secuencias de valores equidistantes) y `rep()` (repite, con reciclaje, una serie de valores hasta una longitud predeterminada).
+
+**Ejercicio**
+Crear un vector con los números del 10 al 0 en orden decreciente, usando `seq()`. Crear otro vector resultado de repetir ese primer vector cinco veces.
+
+```{r seq_rep, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+
+#### Operaciones con vectores
+
+Siempre que se pueda es mucho más rápido hacer operaciones con vectores directamente, es decir, trabajar vectorialmente. En lugar de usar bucles para recorrer el vector, aplicar las funciones o las operaciones matemáticas directamente al vector. 
+
+La mayoría de las funciones de R trabajan vectorialmente (es decir elemento a elemento - la operación a cada uno de los elementos del vector).
+
+**Ejercicio**
+Descomenta el siguiente código y ejecútalo. A continuación, usando vectores, crea un vector que contenga $x^x$ para $x = 1, 2, 3,\ldots, 10$:
+```{r vectorial, exercise = TRUE, eval.exercise = TRUE}
+# v1 <- 1:10
+# v2 <- 10:1
+# v1+v2
+# v1*v2
+# sum(v1)
+# mean(v1) # ?mean
+# max(v2)
+```
+
+
+#### Comparaciones con vectores
+ Los operadores de comparación son los típicos en otros muchos lenguajes: **$==,!=,<, >, <=,>=$**.
+ 
+ Además podemos usar los operadores lógicos: `any()`, `all()`.
+ 
+**Ejercicio**
+Crear dos vectores, `a` y `b`, con 50 valores aleatorios (consultar la ayuda de la función `runif()`). Determinar qué elementos del vector `a` son menores o iguales que los elementos correspondientes de `b`. Para ello, consultar la ayuda de la función `which()`.
+```{r comp, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+``` 
+
+#### Acceso a vectores
+
+Para acceder al contenido de una posición de un vector se usan los corchetes. Hay que tener en cuenta que podemos acceder a la vez a más de un elemento:
+
+- Usando el operador `c()` 
+- Indicando `posinicial:posfinal` 
+- Mezclando ambas formas
+- Se pueden poner condiciones con operadores lógicos. 
+- Se pueden poner condiciones  con comando `which()`, para seleccionar los índices, es decir las posiciones del vector. 
+- Se puede usar el signo `-` delante de `c()` o delante de `posinicial:posfinal`  para no seleccionar esos índices.
+
+**Ejercicio**
+Definir un vector `a` con 100 valores aleatorios entre 0 y 1. Determinar cuántos de ellos son menores que 0.3. A continuación, almacenar en un vector `b` los elementos de `a` mayores que 0.7.
+```{r subsetting, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+**Ejercicio**
+
+Averigua (descomentando primero) qué hacen las siguientes funciones. 
+
+```{r subsetting2, exercise = TRUE, eval.exercise = TRUE}
+# v1 <- c(1,3,1.2,2,1,2,5,6,3,2)
+# sort(v1)
+# rev(v1)
+# unique(v1)
+# diff(v1)
+# order(v1)
+# v2 <- sample(5);v2
+# order(v2)
+# v2[order(v2)]
+```
+
+
+**Ejercicio**
+
+Ejecuta (descomentando primero) y busca qué hacen los siguientes comandos: 
+
+```{r subsetting3, exercise = TRUE, eval.exercise = TRUE}
+ # x <- 1:30
+ # x == 12
+ # x < 12
+ # sum(x == 12)
+ # sum(x < 12)
+ # sum(x != 12)
+ # sum(x < mean(x))
+ # x[x < 12]
+ # sum(x[(x < 12) | (x > 25)])
+ # x[(x < 12) & (x > 25)]
+ # which((x < 12) & (x > 25))
+ # which((x < 12) | (x > 25))
+```
+
+#### Funciones de R para vectores - resumen
+
+Mostramos una lista de funciones interesantes de R para realizar operaciones con vectores. Si es necesario, usa la ayuda para buscar lo que hacen.
+
+*  `max()`
+*  `min()`
+*  `mean()`
+*  `median()`
+*  `var()`
+*  `sd()`
+*  `sum()`
+*  `cumsum()`
+*  `prod()`
+*  `cumprod()`
+
+### Factor
+
+Es un tipo de vector especial, que almacenan información de los valores (categóricos) presentes en el vector (denominados 'levels' - niveles).  R utiliza una representación compacta para este tipo de datos.  Un factor puede representar variables categóricas usadas en tablas de contingencia, regresión lineal, análisis de varianza, regresión logística, etc.    
+
+```{r,size="footnotesize"}
+x <- c(1, -1, 1, 0, 3, 4)
+f1 <- factor(x)
+f1
+```
+
+Como ves en `Levels` el factor almacena los distintos valores que hay en **f1**.
+Cuando utilicemos en el curso algunos métodos de análisis de datos necesitaremos que las variables sean factor o los métodos devolverán variables de tipo factor. 
+
+### Listas
+
+Una lista es un vector de objetos de tipos distintos que están agrupados. 
+
+```{r,eval=TRUE}
+alumno1 <- list(nombre = "Luis", no.asignaturas = 4, 
+                 nombre.asignaturas = c("Lab1", "Lab2", "Lab3"))
+# Accedemos a los componentes:
+alumno1
+alumno1$nombre # acceder al dato nombre
+alumno1$nombre.asignaturas # acceder al dato asignaturas
+alumno1$nombre.asignaturas[1] # acceder a la primera asignatura
+# IMPORTANTE: Ver  la diferencia entre los   siguientes comandos
+alumno1[1]
+alumno1[[1]]
+class(alumno1[1])
+class(alumno1[[1]])
+```
+
+El comando **unlist** aplana una lista. 
+
+**Ejercicio**
+Crear una lista (con `list()`) con 3 elementos, cada uno de los cuales es un vector de longitud 50, 100, 500, respectivamente, de números aleatorios (`runif()`) entre 0 y 1. Posteriormente, calcular la media de cada uno de los 3 vectores (accediendo a ellos como elementos de la lista). Para finalizar, _aplanar_ la lista en forma de único vector, y calcular su media.
+```{r list, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+### Matrices 
+
+Una matriz es un objeto de dos dimensiones (filas y columnas) que contiene datos del mismo tipo.
+
+Nota: el objeto matriz y el objeto vector son diferentes. Un vector no es una matriz con una dimensión.  
+
+Para crear una matriz: 
+
+- `matrix()`
+- `array()` (matrices de n-dimensiones, no las usaremos en este curso)
+- cambiando la dimensión a un vector usando `dim()`.
+- combinando vectores con `rbind()`, `cbind()`.
+
+**Ejercicio**
+Haciendo uso del material de esta sección (en la presentación adjunta), crear un vector de longitud 100 de números aleatorios. A partir de él, se pide crear una matriz con 10 filas y 10 columnas, de dos formas distintas, de entre las mencionadas más arriba. Llamar a dicha matriz `M1`.
+```{r matr, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+#### Acceso a matrices
+   Al igual que con los vectores, se usan corchetes para acceder a los elementos de una matriz.
+
+**Ejercicio**
+Descomenta y ejecuta los siguientes comandos, intentando predecir qué resultado ofrecerá cada uno.
+
+```{r matr2, exercise = TRUE, eval.exercise = TRUE}
+# M1  
+# M1[2, 3] 
+# M1[2, 5] 
+# M1[ , 3]
+# M1[1:2,]
+# M1[1:2, 2:3]
+# M1[c(2, 1), c(2, 1)]
+```
+
+
+#### Operaciones matriciales
+
+Mostramos algunas de las operaciones matriciales más importantes.
+
+```{r,eval=FALSE,size="footnotesize"}
+# Suma y Multiplicación elemento a elemento
+A+B; A*B
+# Multiplicación matricial
+A %*% B
+# Transpuesta
+t(A)
+# Determinante
+det(A)
+# Devuelve la diagonal
+diag(A)
+# Resolver un sistema de ecuaciones (Ax=b)
+b <- c(2,3,1)
+x <- solve(A,b);x
+# Calcular autovalores y autovectores
+eigen(A)
+```
+
+**Ejercicio**
+Tomando la matriz `M1` del ejercicio anterior, construir una matriz `M` como `M1` por su transpuesta ($M = M_1M_1^t$). Para esa matriz `M`, calcular su determinante y sus autovalores y autovectores. 
+
+```{r matr3, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+### Data frames
+
+Un _dataframe_ es similar a una matriz, a excepción de que cada columna puede contener un tipo distinto de datos.  
+
+```{r,size="footnotesize"}
+n1 <- c("Luis","Antonio","Daniel")
+e1 <- c(21,20,22)
+D1 <- data.frame(alumnos=n1,edad=e1); D1
+D1$alumnos
+D1$edad
+```
+
+Podemos acceder a una columna del data frame de distintas formas, puesto que, internamente, un _dataframe_ se almacena en `R` como una lista: 
+
+```{r,eval=TRUE,size="footnotesize"}
+D1$alumnos # Columna de nombre "alumnos"
+D1[1]      # Primera columna, independientemente de su nombre
+D1[[1]]    # Vector de datos de la primera columna
+```
+
+Con `[ ]` accedemos a las columnas que indiquemos entre corchetes, pero devuelve un data frame. Si queremos acceder al vector que está dentro del data frame se usará `[[ ]]`. 
+
+Data frames son parecidos a matrices, pero a la hora de acceder a ellos hay que tener cuidado.  
+
+**Ejercicio**
+Averigua lo que hacen los siguientes comandos:
+```{r df1, exercise = TRUE, eval.exercise = TRUE}
+# D1[1:2]
+# D1[2:1]
+# D1[1:3]
+# # si ponemos , dentro de corchetes 
+# # antes de la coma -- las filas
+# # despues de las comas -- las columnas
+# # si antes o despues no se pone nada significa 
+# # o todas las filas o todas las columnas
+# D1[1,] # fila 1
+# D1[1:2,]
+# D1[1:2,]$alumnos
+# D1[1:3,]
+# D1[2:1,]$edad
+# D1[,1] #columna 1
+# D1[,1:2]
+```
+
+#### Consultas a Data Frame
+
+Se pueden filtrar las filas que cumplan una condición especificada para una columna.
+Entre `[ ]` colocamos una condición (o varias) que cumpla algún valor del data frame. 
+
+
+```{r,eval=TRUE}
+my.dataset <- data.frame(
+    ciudad = c('Málaga', 'Sevilla', 'Cádiz', 'Málaga', 'Cádiz'),
+    Estación = c('Invierno', 'Verano', 'Otoño', 'Otoño', 'Verano'),
+    temperatura = c(37.4, 36.3, 38.6, 37.2, 38.9))
+
+my.dataset
+my.dataset$ciudad
+
+my.dataset$ciudad[my.dataset$Estación == "Verano"]
+my.dataset$temperatura[my.dataset$ciudad %in%  c("Málaga", "Sevilla")]
+```
+
+## Funciones
+
+En `R`, los datos son objetos y todas las operaciones son funciones. Incluso las estructuras de control que veremos más adelante, o las operaciones `[ ]` para extraer elementos de un vector, lista, matriz o _dataframe_ son funciones.
+
+Vamos a repasar las funciones ya predefinidas más útiles con las que empezar a usar `R`.
+
+### Aritmética con R
+
+Mostramos un resumen de las operaciones matemáticas básicas: 
+
+- Suma: ``+`` 
+```{r, eval=FALSE}
+2+3
+```
+- Resta: ``-`` 
+```{r, eval=FALSE}
+4-3
+```
+- Multiplicación: ``*`` 
+```{r, eval=FALSE}
+3*4
+```
+- División: ``/``  
+```{r, eval=FALSE}
+6/7
+```
+- Cociente entero: ``%/%`` 
+```{r, eval=FALSE}
+10%/%3
+```
+
+- Resto entero: ``%%`` 
+```{r, eval=FALSE}
+10%%3
+```
+- Potencia: ``^``  
+```{r, eval=FALSE}
+2^3
+```
+- Exponenciación: ``exp()``  
+```{r, eval=FALSE}
+exp(1)
+```
+- Raiz cuadrada: ``sqrt()``   
+```{r, eval=FALSE}
+sqrt(15)
+```
+- Logaritmo neperiano: ``log``    
+```{r, eval=FALSE}
+log(10)
+```
+- Factorial: ``factorial()``     
+```{r, eval=FALSE}
+factorial(4)
+```
+- Truncar a entero menor: ``floor()``    
+```{r, eval=FALSE}
+floor(3.4)
+```
+- Truncar a entero mayor: ``ceiling()``    
+```{r, eval=FALSE}
+ceiling(3.4)
+```
+- Redondear: ``round()`` 
+```{r, eval=FALSE}
+round(3.4)  
+``` 
+- Valor absoluto: ``abs()``  
+```{r, eval=FALSE}
+abs(-3.4) 
+```
+- Seno: ``sin()``  
+```{r, eval=FALSE}
+sin(pi)  
+```
+- Coseno: ``cos()``  
+```{r, eval=FALSE}
+cos(pi) 
+```
+- ...
+
+### Comparaciones lógicas
+Los operadores que nos permiten comparar datos se denominan operadores relacionales. Devuelven un valor ``TRUE`` o ``FALSE`` dependiendo si se cumple o no la condición.
+
+- Mayor, menor: ``>, <``  
+```{r, eval=TRUE}
+3 > 4
+3 < 4 
+```
+- Mayor o igual, menor o igual: ``>=, <=``  
+```{r, eval=TRUE}
+4 >= 4
+3 <= 4
+```
+- Igual, distinto: ``==, !=``  
+```{r, eval=TRUE}
+ 3 == 4
+ 3 != 4 
+```
+
+Además tenemos los siguientes operadores lógicos que se aplican a una expresión que devuelve  ``TRUE`` o ``FALSE``. 
+
+- Negación: ``!``  
+```{r, eval=TRUE}
+ !(3 > 4) 
+```
+- And (Y), Or (O): ``&, |`` 
+```{r, eval=TRUE}
+(3 < 4) & (4 > 8)
+(3 < 4) | (4 > 8)
+```
+  
+**Nota**:
+
+- El operador lógico ``&`` devuelve ``TRUE`` cuando las dos expresiones que están a su izquierda y a su derecha valen ``TRUE``.
+- El operador lógico ``|`` devuelve ``TRUE`` cuando una de las dos expresiones que están a su izquierda o a su derecha valen ``TRUE``.
+
+<!-- ## Logaritmos y exponenciales -->
+
+Al igual que la mayoría de las funciones en R, podemos aplicar los operadores relacionales y lógicos con vectores. 
+
+**Ejercicio**
+Descomenta y ejecuta el siguiente código, intentando predecir el resultado de cda función.
+```{r log1, exercise = TRUE, eval.exercise = TRUE}
+# v1 <- 1:10
+# # Comprobamos si cada elemento del vector es < que 5
+# condicion1 <- v1 < 5; condicion1
+# # Todos los valores son TRUE??
+# all(condicion1)
+# # Algún valor es TRUE??
+# any(condicion1)
+```
+
+
+### Func. estadísticas básicas
+
+Mostramos un resumen de las operaciones estadísticas básicas: 
+
+- Media: ``mean()`` 
+- Mínimo, máximo: ``min(), max()`` 
+- Percentiles: ``quantile()``
+- Tabla de contingencia: 
+- Mediana: ``median(x)`` 
+- Sumar: ``sum(x)`` 
+- Rango (valores menor y mayor): ``range(x)`` 
+- Varianza: ``var(x)`` 
+- Correlación entre dos vectores: ``cor(x,y)`` 
+- Producto acumulado: ``cumprod()`` 
+- Suma acumulada: ``cumsum()`` 
+
+**Ejercicio**
+Crea dos vectores aleatorios con 100 elementos cada uno, calcula la correlación entre ambos, y los percentiles 5 y 95 de cada uno de los vectores.
+```{r estad, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+## Estructuras de control
+
+Permiten controlar la ejecución del programa R.
+
+Básicamente las podemos agrupar en: 
+
+- Estructuras condicionales
+  - `if`, `else`: si se cumple una condición entonces ejecuto un bloque de comandos
+- Ciclos o bucles
+  - `for`: repetición de un bloque un número de veces
+  - `repeat`: repetir un bloque hasta que se cumpla una condición
+  - `while`: repetir un bloque mientras se cumpla una condición
+
+Hay dos órdenes que permiten interrumpir un bucle: 
+
+- `break`: acabar la ejecución de un bucle
+- `next`: saltar la presente iteración de un bucle
+
+
+### if - else 
+
+La forma más sencilla de este comando sería: 
+
+``` 
+if (COND) {
+  ## sentencias a ejecutar si se cumple COND
+} else {
+  ## sentencias a ejecutar si no se cumple COND
+}
+```
+
+`COND` es una expresión formada por una o más condiciones que devuelve un valor lógico (TRUE, FALSE).
+
+**Nota**:
+
+- Si cuando la condición es cierta ejecutas más de un comando **tienes** que colocar llaves para encerrar en un bloque todas las órdenes
+- recomendable que al final de la llave pongas un comentario para que en tu programa sepas donde acaba la orden `if`.
+- Si la condición no se cumple puedo colocar un bloque para ejecutar código en ese caso:
+- Puedo comprobar si se cumplen varias condiciones, ejecutando los bloques correspondientes y sino se ejecuta el bloque asociado a la parte **else**.  La segunda condición se coloca tras las palabras **else if**.
+
+**Ejercicio**
+Supongamos definida la variable `n` al principio del script. Crear una estructura `if-else` que compruebe si la variable `n` es par. En ese caso, escribir por pantalla (`print()`) la frase "n es par". En caso contrario, comprobar si `n` es múltiplo de 3. En ese caso, escribir por pantalla "n es múltiplo de 3". Si no es múltiplo de 3 ni de 2, escribir "otro caso".
+
+```{r ifelse, exercise = TRUE, eval.exercise = TRUE}
+# n <- 15
+
+
+```
+
+### for
+
+El bucle **for** ejecuta un número de veces los comandos encerrados en el bloque (las llaves):
+``` 
+ for (variable  in vector) {
+       ## sentencias
+ }
+```
+
+`variable` recorre todos los valores de `vector`, ejecutando las `sentencias` dentro del bucle una vez por cada uno de dichos valores. Posiblemente, las `sentencias` dependan del valor de `variable`. Esto es útil para rellenar vectores de forma dinámica.
+
+**Ejercicio**
+Dado un número `n`, escribir un bucle `for` que calcule el término `n`-ésimo de la sucesión de Fibonacci $\{a_n\}$, donde $a_n = a_{n-1} + a_{n-2}, n\ge 3$, con $a_1 = a_2 = 1$. Nota: Hay más de una posible solución, alguna implica el uso de una estructura `if` o de la inicialización de un vector de tamaño `n` que se puede ir rellenando en cada iteración.
+
+```{r for, exercise = TRUE, eval.exercise = TRUE}
+# n <- 7
+
+
+```
+
+### while 
+
+El bucle `while` ejecuta  los comandos encerrados en el bloque (las llaves) mientras se cumpla una condición:
+``` 
+ while (condicion)  {
+       ## sentencias
+ } #fin repeat
+```
+
+
+###  repeat
+
+El bucle `repeat` ejecuta  los comandos encerrados en el bloque (las llaves) hasta que se cumpla una condición:
+``` 
+ repeat  {
+       ## sentencias
+       if (condicion) break
+ } #fin repeat
+```
+La orden `exit` hace que se termine de ejecutar el bucle cuando se cumple la condición. La condición puede estar en cualquier lugar del bloque.
+
+## Programación funcional
+
+Una función de orden superior es una función que como argumento usa otra función. Son una alternativa para los bucles y trabajan vectorialemente así que además de buscar una mayor *belleza* matemática en tu código, conseguiremos mayor *eficiencia*.
+
+### familia `apply()`
+
+Tú puedes implementar funciones de orden superior, pero por ahora vamos a aprender a usar la familia de funciones `apply()`:
+
+- `lapply()`
+- `sapply()`
+- `tapply()`
+- `apply()`
+- etc. 
+
+Toman una función como entrada y devuelven un vector o un lista. 
+
+#### lapply
+
+Va tomando cada elemento de una lista, evalúa una función a cada elemento de la lista y devuelve una **lista** con todos los resultados.  
+
+Su sintaxis es: `lapply(lista_entrada, funcion_a_aplicar)`
+
+Por ejemplo:
+```{r}
+lista <- list(1L, 2.3, TRUE, NA, "a")
+lapply(lista, is.numeric)
+lapply(lista, is.character)
+lapply(lista, is.logical)
+```
+
+**Ejercicio**
+Construye una lista con 3 elementos, cada uno de los cuales es un vector de tamaño 100. Usando `lapply()`, calcula la media de cada uno de dichos vectores.
+```{r lapply, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+
+#### sapply
+Toma como entrada una lista y: 
+
+- Itera sobre cada elemento de una lista. 
+- Aplica una función $f$ a cada elemento $x$ de la lista.  
+- Devuelve un vector si cada $f(x)$ tiene longitud 1. 
+- Devuelve una matriz si cada $f(x)$ tiene longitud  mayor que 1. 
+
+Veamos un par de ejemplos para entender cómo funciona. 
+
+```{r,size="footnotesize", eval=TRUE}
+Notas <- list(alumno1 = c(2.5, 3.7, 6), 
+              alumno2 = c(5, 6.7, 10))
+# Media de cada alumno
+medias <- sapply(Notas,mean)
+# Notas mínima y máxima de cda alumno
+rangos <- sapply(Notas, range)
+# Comprobamos los tipos
+medias
+class(medias)
+rangos
+class(rangos)
+```
+
+**Ejercicio**
+Construye una lista con 3 elementos, cada uno de los cuales es un vector de tamaño 100. Usando `sapply()`, calcula los percentiles 25, 50 y 75 de cada uno de dichos vectores.
+```{r sapply, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+#### tapply
+
+Aplica una función a subconjuntos de un vector. Es útil cuando tienes que romper un vector en grupos y a cada grupo aplicarle una función. 
+
+En el _dataset_ `airquality` (del paquete `datasets`), que mide datos diarios de la calidad del aire en Nueva York, desde Mayo a Septiembre de 1973, una columna (`Temp`) contiene la temperatura en grados Farenheit y otra (`Month`) tiene los meses. Calcularemos la media de la temperatura para cada uno de los meses: 
+
+```{r}
+tapply(airquality$Temp, airquality$Month,  mean)
+```
+
+
+
+### función anónima
+
+Se usan funciones anónimas (sin nombre) dentro de otras funciones, cuando su importancia no es muy grande o cuando solo se va a usar dentro de la función en la que está encerrada. 
+
+Por ejemplo, podemos construir una función que calcule el número de elementos distintos de un vector:
+```{r}
+function(x) { x %>% unique() %>% length() }
+```
+pero ejecutar esto no se almacena en ninguna variable. Sin embargo, si tenemos una lista, donde cada elemento puede ser un vector, numérico o cadena de caracteres, podemos aplicar dicha función a cada uno de los vectores:
+```{r}
+lista <- list(v1 = c(1, 2, 3, 1, 2, 1, 4),
+              v2 = c("a", "a", "b"),
+              v3 = c(TRUE, FALSE, TRUE, NA),
+              v4 = c(0L, 0.0))
+lapply(lista, function(x) { x %>% unique() %>% length() })
+```
+
+Este último comando es equivalente a almacenar la función anónima en una variable y usarla en el lapply:
+```{r}
+lista <- list(v1 = c(1, 2, 3, 1, 2, 1, 4),
+              v2 = c("a", "a", "b"),
+              v3 = c(TRUE, FALSE, TRUE, NA),
+              v4 = c(0L, 0.0))
+
+longitud_unicos <- function(x) { x %>% unique() %>% length() }
+lapply(lista, longitud_unicos)
+```
+
+**Ejercicio**
+La expresión para traducir temperaturas en grados Farenheit en grados Celsius es:
+$$C = \frac{5}{9}(F - 32)$$ donde $F$ y $C$ representan las dos variables de temperatura correspondientes. Usar `tapply()` con una función anónima para calcular la temperatura media mensual (con el _dataset_ `airquality`) en grados celsius.
+
+```{r anon, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+### map
+
+Es una función del paquete `purr`. Debes instalarlo la primera vez que lo uses. 
+
+La función `map()` transforma su entrada aplicándole una función a cada elemento y devolviendo un vector con la misma longitud que la entrada. 
+
+Ejecuta:
+```{r,size="footnotesize", eval=TRUE}
+library(purrr)# instalar la primera vez
+data("airquality")
+map(airquality, sum) # Aplica sum a cada columna de airquality
+```
+
+A partir de ahora, que usaremos muy a menudo la **filosofia tidyverse**, el código anterior lo codificaremos como:
+```{r,size="footnotesize"}
+library(magrittr)
+library(purrr)
+airquality %>% map(sum)
+```
+
+**Ejercicio**
+Para la lista dada, usa la función `map()` para calcular el número de elementos distintos de cada una de sus componentes.
+
+```{r map, exercise = TRUE, eval.exercise = TRUE}
+lista <- list(v1 = c(1, 2, 3, 1, 2, 1, 4),
+              v2 = c("a", "a", "b"),
+              v3 = c(TRUE, FALSE, TRUE, NA),
+              v4 = c(0L, 0.0))
+
+
+
+```

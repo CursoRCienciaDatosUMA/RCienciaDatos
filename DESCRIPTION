@@ -2,8 +2,8 @@ Package: RCienciaDatos
 Type: Package
 Title: Tutoriales para el Curso de R para Ciencia de Datos
 Version: 0.1.0
-Author: person("Domingo", "López-Rodríguez", role = c("aut", "cre"), email = "neuroimaginador@gmail.com")
-Maintainer: Domingo Lopez-Rodriguez <neuroimaginador@gmail.com>
+Author: person("Domingo", "López-Rodríguez", role = c("aut", "cre"), email = "dominlopez@uma.es")
+Maintainer: Domingo Lopez-Rodriguez <dominlopez@uma.es>
 Description: En este paquete se incluyen los tutoriales para el curso online "R para Ciencia de Datos".
 License: GPL-2
 Encoding: UTF-8

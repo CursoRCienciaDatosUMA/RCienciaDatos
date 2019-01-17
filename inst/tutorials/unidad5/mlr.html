@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+<meta name="progressive" content="false" />
+<meta name="allow-skip" content="false" />
+
+<title>Tutorial de mlr</title>
+
+
+<!-- highlightjs -->
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+</head>
+
+<body>
+
+
+
+<div class="pageContent band">
+<div class="bandContent page">
+
+<div class="topics">
+
+<div id="section-introduccion" class="section level2">
+<h2>Introducción</h2>
+<p>En este tutorial, aprenderemos a utilizar el paquete <code>mlr</code> para realizar tareas de Machine Learning:</p>
+<ul>
+<li>Aprenderemos a definir una tarea a partir de los datos del problema.</li>
+<li>Aprenderemos a construir un método de aprendizaje computacional.</li>
+<li>Seremos capaces de entrenar dicho método y predecir sus resultados sobre nuevos datos.</li>
+<li>Aprenderemos a comparar diversos métodos entre sí para un mismo <em>dataset</em>.</li>
+</ul>
+<div id="section-el-paquete-mlr" class="section level3">
+<h3>El paquete <code>mlr</code></h3>
+<p><a href="https://github.com/mlr-org/mlr">mlr</a></p>
+<p><code>R</code> no define un interfaz estándar para todos los algoritmos de Machine Learning presentes en los distintos paquetes. Eso implica que, para realizar experimentos de aprendeizaje computacional <em>no triviales</em>, hay que escribir muchas líneas de código para las distintas partes del proceso, proceso que es propenso a errores.</p>
+<p>Además, cada algoritmo tiene su infraestructura propia para optimizar sus hiperparámetros, seleccionar atributos, pre- y post-procesar los datos y comparar diferentes modelos de forma estadística. Asimismo, conforme los problemas crecen, y se hacen computacionalmente intensivos, cada uno tiene su propia esrategia de paralelización. En muchos casos, aprender a usar un algoritmo nuevo conlleva mucho tiempo de práctica y tener buenas habilidades de programación.</p>
+<p>El paquete <code>mlr</code> proporciona toda esta infraestructura, de forma que el usuario solo se tiene que concentrar en realizar los experimentos. Este <em>framework</em> proporciona métodos supervisados como clasificación o regresión, junto con sus métodos de optimización y evaluación, y métodos no supervisados como <em>clustering</em>.</p>
+</div>
+<div id="section-paquetes-de-r-que-vamos-a-usar" class="section level3">
+<h3>Paquetes de R que vamos a usar</h3>
+<p>El paquete <a href="https://cran.r-project.org/package=mlbench">mlbench</a> contiene una colección de problemas de prueba, tanto artificiales como reales, que incluyen, por ejemplo, algunos de los datasets del repositorio UCI.</p>
+<p>Por otro lado, usaremos los paquetes:</p>
+<ul>
+<li>class</li>
+<li>clue</li>
+<li>rFerns</li>
+<li>clusterSim</li>
+</ul>
+<p>que incluyen algunos de los métodos más comunes de aprendizaje computacional.</p>
+<p>Y, por supuesto, el <code>tidyverse</code>!</p>
+</div>
+</div>
+<div id="section-tasks---tareas" class="section level2">
+<h2><em>Tasks</em> - Tareas</h2>
+<div id="section-tareas" class="section level3">
+<h3>Tareas</h3>
+<p>Las tareas de aprendizaje encapsulan, en el paquete <code>mlr</code>, tanto los datos como informción relevante adicional acerca de un problema de aprendizaje automático.</p>
+<p>Por ejemplo, almacena el nombre de la variable de clase en problemas supervisados, o la existencia de datos perdidos (<em>missing</em>), entre otras características.</p>
+</div>
+<div id="section-tipos-y-creacion-de-tareas" class="section level3">
+<h3>Tipos y creación de tareas</h3>
+<p>Las tareas se organizan de forma jerárquica, veamos las más comunes:</p>
+<ul>
+<li><code>RegrTask</code> para problemas de regresión,</li>
+<li><code>ClassifTask</code> para problemas de clasificación binaria (dos clases) o multi-clase,</li>
+<li><code>ClusterTask</code> para análisis cluster.</li>
+</ul>
+<p>La forma de crear una tarea de cada uno de los tipos anteriores es con las funciones:</p>
+<ul>
+<li><code>makeRegrTask</code></li>
+<li><code>makeClassifTask</code></li>
+<li><code>makeClusterTask</code></li>
+</ul>
+<p>Estas funciones requieren todas de, al menos, dos parámetros:</p>
+<ul>
+<li>Un identificador (argumento <code>id</code>) que, si no lo proporciona el usuario, es automáticamente generado usando el nombre de la variable de los datos.</li>
+<li>Un dataframe (argumento <code>data</code>), con los datos necesarios para la tarea de aprendizaje.</li>
+</ul>
+<p>Dependiendo del tipo de problema a resolver, es posible que se necesiten argumentos adicionales.</p>
+</div>
+<div id="section-tareas-de-regresion" class="section level3">
+<h3>Tareas de Regresión</h3>
+<p>Para tareas de aprendizaje supervisado, como regresión (o como clasificación), además del argumento <code>data</code>, se debe especificar el nombre de la variable <code>target</code>, la que se desea <em>estimar</em> (bien sea continua en regresión o categórica en clasificación).</p>
+<pre class="r"><code>data(BostonHousing, package = &quot;mlbench&quot;)
+regr_task &lt;- makeRegrTask(id = &quot;bh&quot;, 
+                          data = BostonHousing, 
+                          target = &quot;medv&quot;)
+regr_task</code></pre>
+<pre><code>## Supervised task: bh
+## Type: regr
+## Target: medv
+## Observations: 506
+## Features:
+##    numerics     factors     ordered functionals 
+##          12           1           0           0 
+## Missings: FALSE
+## Has weights: FALSE
+## Has blocking: FALSE
+## Has coordinates: FALSE</code></pre>
+<p>Como se puede observar, la tarea almacena el tipo de problema de aprendizaje e información básica acerca del <em>dataset</em>, el tipo de los atributos (vectores numéricos, factores, factores ordenados), el número de observaciones, o si hay valores perdidos.</p>
+<p><strong>Ejercicio</strong></p>
+<p>Usando como modelo el código anterior, crear una tarea de regresión con <code>mlr</code> para estimar la variable <code>weight</code> del <em>dataset</em> <code>ChickWeight</code>, que está contenido en el paquete <code>datasets</code>. Almacenar el resultado en una variable llamada <code>chicken_task</code>.</p>
+<div class="tutorial-exercise" data-label="regre_task" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<pre class="text"><code>data(BostonHousing, package = &quot;mlbench&quot;)
+regr_task &lt;- makeRegrTask(id = &quot;bh&quot;, 
+                          data = BostonHousing, 
+                          target = &quot;medv&quot;)
+regr_task</code></pre>
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+</div>
+<div id="section-tareas-de-clasificacion" class="section level3">
+<h3>Tareas de Clasificación</h3>
+<p>Al crear tareas de clasificación, se sigue el mismo esquema, simplemente el tipo de datos de la variable a estimar es diferente.</p>
+<p>Para clasificación, la columna <code>target</code> debe ser una variable de tipo <code>factor</code>.</p>
+<p>En el siguiente ejemplo, se define una tarea de clasificación para el <em>dataset</em> <code>BreastCancer</code> incluido en el paquete <code>mlbench</code>, excluyendo la variable <code>Id</code> de todo el proceso (ya que se sobreentrenaría el modelo).</p>
+<pre class="r"><code>data(BreastCancer, package = &quot;mlbench&quot;)
+df &lt;- BreastCancer %&gt;% select(-Id)
+classif_task &lt;- makeClassifTask(id = &quot;BreastCancer&quot;, 
+                                data = df, 
+                                target = &quot;Class&quot;)
+classif_task</code></pre>
+<pre><code>## Supervised task: BreastCancer
+## Type: classif
+## Target: Class
+## Observations: 699
+## Features:
+##    numerics     factors     ordered functionals 
+##           0           4           5           0 
+## Missings: TRUE
+## Has weights: FALSE
+## Has blocking: FALSE
+## Has coordinates: FALSE
+## Classes: 2
+##    benign malignant 
+##       458       241 
+## Positive class: benign</code></pre>
+<p>En clasificación binaria, se suele referir a las dos clases como <em>clase positiva</em> y <em>clase negativa</em>, siendo la <em>positiva</em> la que supone mayor interés.</p>
+<p>Esto es relevante para las medidas del desempeño, como la <em>tasa de verdaderos positivos</em> (<em>true positive rate</em>) o el análisis ROC.</p>
+<p>Por defecto, el paquete <code>mlr</code> permite configurar algunas opciones y mostrar gráficas de resultados para la <em>clase positiva</em> solamente.</p>
+<p><code>makeClassifTask()</code>, por defecto, selecciona el primer nivel del factor de la variable de clase como la <em>clase positiva</em>, siendo, en el ejemplo anterior del <em>dataset</em> <code>BreastCancer</code>, <code>benign</code>.</p>
+Se puede seleccionar otra clase como positiva de forma manual, como sigue:
+<div class="tutorial-exercise" data-label="classif_task" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<pre class="text"><code>classif_task &lt;- makeClassifTask(id = &quot;BreastCancer&quot;, 
+                                data = df, 
+                                target = &quot;Class&quot;, 
+                                positive = &quot;malignant&quot;)</code></pre>
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<p><strong>Ejercicio</strong></p>
+<p>Usando como modelo el código anterior, crear una tarea de clasificación para el <em>dataset</em> <code>Glass</code> (en el paquete <code>datasets</code>), para estimar la variable <code>Type</code>. Dejar como clase positiva la que salga por defecto, y almacenar el resultado en una variable llamada <code>glass_task</code>.</p>
+<div class="tutorial-exercise" data-label="clasi_task" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<pre class="text"><code>data(BreastCancer, package = &quot;mlbench&quot;)
+df &lt;- BreastCancer %&gt;% select(-Id)
+classif_task &lt;- makeClassifTask(id = &quot;BreastCancer&quot;, 
+                                data = df, 
+                                target = &quot;Class&quot;)
+classif_task</code></pre>
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+</div>
+<div id="section-analisis-cluster" class="section level3">
+<h3>Análisis cluster</h3>
+<p>Como el análisis cluster es no supervisado, el único argumento obligatorio para construir una tarea de análisis cluster es <code>data</code>.</p>
+<p>A continuación, crearemos una tarea de aprendizaje (clustering) para el <em>dataset</em> <code>mtcars()</code>.</p>
+<pre class="r"><code>data(mtcars, package = &quot;datasets&quot;)
+cluster_task &lt;- makeClusterTask(data = mtcars)</code></pre>
+</div>
+<div id="section-modificar-una-tarea" class="section level3">
+<h3>Modificar una tarea</h3>
+<p>En ocasiones, es más sencillo modificar una tarea existente que crear una nueva desde cero. El paquete <code>mlr</code> proporciona diversas funciones para modificar una tarea:</p>
+<pre class="r"><code># Seleccionar únicamente unas observaciones o variables
+cluster_task &lt;- subsetTask(cluster_task, subset = 4:17)
+# Puede ocurrir, especialmente después de seleccionar 
+# observaciones, que alguna variable quede constante. 
+# Estas variables deberían eliminarse.
+removeConstantFeatures(cluster_task)</code></pre>
+<pre><code>## Removing 1 columns: am</code></pre>
+<pre class="r"><code># Tipificar variables numéricas
+task &lt;- normalizeFeatures(cluster_task, method = &quot;range&quot;)</code></pre>
+</div>
+</div>
+<div id="section-learners---metodos" class="section level2">
+<h2><em>Learners</em> - Métodos</h2>
+<div id="section-interfaz" class="section level3">
+<h3>Interfaz</h3>
+<p>En el paquete <code>mlr</code>, se proporciona una interfaz unificada para acceder a muchos métodos de Machine Learning populares, implementados en otros paquetes de <code>R</code> por lo general.</p>
+<p>Existen interfaces para problemas de clasificación, regresión y <em>clustering</em>, entre otros.</p>
+</div>
+<div id="section-construir-un-learner" class="section level3">
+<h3>Construir un <em>learner</em></h3>
+<p>Se puede generar un <em>learner</em> en <code>mlr</code> llamando a la función <code>makeLearner()</code>.</p>
+<p>Esta función, que ejerce las veces de <em>constructor</em> del método deseado, requiere como argumento el método de aprendizaje que se desea utilizar.</p>
+<p>Además, sirve para:</p>
+<ul>
+<li>Configurar los <em>hiperparámetros</em> del método (son los parámetros que no se <em>aprenden</em>, sino los que definen el método en sí, como el número de capas y neuronas en una red neuronal, o el número de árboles en un <em>random forest</em>).</li>
+<li>Controlar la salida para la posterior predicción (para clasificación, se puede elegir entre devolver la clase predicha o las probabilidades de pertenencia a cada clase)</li>
+<li>Asignar un ID para identificar el objeto creado.</li>
+</ul>
+<pre class="r"><code># Árbol de clasificación, configurado para
+# predecir las probabilidades
+classif_lrn &lt;- makeLearner(&quot;classif.randomForest&quot;, 
+                           predict.type = &quot;prob&quot;, 
+                           fix.factors.prediction = TRUE)
+# Gradient boosting machine para regresión, especificando
+# los hiperparámetros en una lista
+regr_lrn &lt;- makeLearner(&quot;regr.gbm&quot;, 
+                        par.vals = list(n.trees = 500, 
+                                        interaction.depth = 3))
+# K-means con 5 clusters
+cluster_lrn &lt;- makeLearner(&quot;cluster.kmeans&quot;, 
+                           centers = 5)</code></pre>
+<p>El primer argumento es el algoritmo a usar. La convención es usar <code>classif.&lt;nombre_del_método_R&gt;</code> para métodos de clasificación, <code>regr.&lt;nombre_del_método_R&gt;</code> para regresión, y <code>cluster.&lt;nombre_del_método_R&gt;</code> para métodos de <em>clustering</em>.</p>
+<p>Los valores de los hiperparámetros se pueden especificar usando una lista de valores con el argumento <code>par.vals</code>, o, simplemente, añadiéndolos a la llamada de la función.</p>
+<p>Es argumento <code>fix.factors.prediction = TRUE</code> es recomendable, ya que permite realizar la predicción correcta en ciertas ocasiones con casos extremos.</p>
+<p>Le podemos echar un vistazo a uno de los métodos que hemos creado:</p>
+<pre class="r"><code>classif_lrn</code></pre>
+<pre><code>## Learner classif.randomForest from package randomForest
+## Type: classif
+## Name: Random Forest; Short name: rf
+## Class: classif.randomForest
+## Properties: twoclass,multiclass,numerics,factors,ordered,prob,class.weights,oobpreds,featimp
+## Predict-Type: prob
+## Hyperparameters:</code></pre>
+<p>Un <em>learner</em> contiene las propiedades del método, es decir, qué tipos de variables puede manejar, qué clase de salidas está disponible durante la predicción, o si se soportan problemas <em>multiclase</em>, observaciones ponderadas o valores perdidos.</p>
+</div>
+<div id="section-lista-de-metodos" class="section level3">
+<h3>Lista de métodos</h3>
+<p>Si se desea listar los métodos disponibles para una tarea concreta, se utiliza la función <code>listLearners()</code>.</p>
+<pre class="r"><code># Lista todos los métodos en mlr
+lrns &lt;- listLearners()</code></pre>
+<pre><code>## Warning in listLearners.character(obj = NA_character_, properties, quiet, : The following learners could not be constructed, probably because their packages are not installed:
+## classif.ada,classif.adaboostm1,classif.bartMachine,classif.boosting,classif.bst,classif.cforest,classif.clusterSVM,classif.ctree,classif.cvglmnet,classif.dbnDNN,classif.dcSVM,classif.earth,classif.evtree,classif.extraTrees,classif.fdausc.glm,classif.fdausc.kernel,classif.fdausc.knn,classif.fdausc.np,classif.gamboost,classif.gaterSVM,classif.geoDA,classif.glmboost,classif.glmnet,classif.h2o.deeplearning,classif.h2o.gbm,classif.h2o.glm,classif.h2o.randomForest,classif.IBk,classif.J48,classif.JRip,classif.kknn,classif.linDA,classif.mda,classif.mlp,classif.neuralnet,classif.nnTrain,classif.nodeHarvest,classif.OneR,classif.pamr,classif.PART,classif.penalized,classif.plr,classif.quaDA,classif.randomForestSRC,classif.rda,classif.rknn,classif.rotationForest,classif.rrlda,classif.saeDNN,classif.sda,classif.sparseLDA,cluster.Cobweb,cluster.dbscan,cluster.EM,cluster.FarthestFirst,cluster.SimpleKMeans,cluster.XMeans,multilabel.cforest,multilabel.randomForestSRC,regr.bartMachine,regr.bcart,regr.bgp,regr.bgpllm,regr.blm,regr.brnn,regr.bst,regr.btgp,regr.btgpllm,regr.btlm,regr.cforest,regr.crs,regr.ctree,regr.cvglmnet,regr.earth,regr.evtree,regr.extraTrees,regr.FDboost,regr.gamboost,regr.glmboost,regr.glmnet,regr.GPfit,regr.h2o.deeplearning,regr.h2o.gbm,regr.h2o.glm,regr.h2o.randomForest,regr.IBk,regr.kknn,regr.km,regr.laGP,regr.mars,regr.mob,regr.nodeHarvest,regr.penalized,regr.randomForestSRC,regr.rknn,regr.rsm,regr.slim,surv.cforest,surv.CoxBoost,surv.cv.CoxBoost,surv.cvglmnet,surv.gamboost,surv.glmboost,surv.glmnet,surv.randomForestSRC
+## Check ?learners to see which packages you need or install mlr with all suggestions.</code></pre>
+<pre class="r"><code>head(lrns[c(&quot;class&quot;, &quot;package&quot;)])</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["class"],"name":[1],"type":["chr"],"align":["left"]},{"label":["package"],"name":[2],"type":["chr"],"align":["left"]}],"data":[{"1":"classif.ada","2":"ada,rpart","_rn_":"1"},{"1":"classif.adaboostm1","2":"RWeka","_rn_":"2"},{"1":"classif.bartMachine","2":"bartMachine","_rn_":"3"},{"1":"classif.binomial","2":"stats","_rn_":"4"},{"1":"classif.boosting","2":"adabag,rpart","_rn_":"5"},{"1":"classif.bst","2":"bst,rpart","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code># Lista los clasificadores que devuelven
+# probabilidades de cada clase
+lrns &lt;- listLearners(&quot;classif&quot;, properties = &quot;prob&quot;)</code></pre>
+<pre><code>## Warning in listLearners.character(&quot;classif&quot;, properties = &quot;prob&quot;): The following learners could not be constructed, probably because their packages are not installed:
+## classif.ada,classif.adaboostm1,classif.bartMachine,classif.boosting,classif.bst,classif.cforest,classif.clusterSVM,classif.ctree,classif.cvglmnet,classif.dbnDNN,classif.dcSVM,classif.earth,classif.evtree,classif.extraTrees,classif.fdausc.glm,classif.fdausc.kernel,classif.fdausc.knn,classif.fdausc.np,classif.gamboost,classif.gaterSVM,classif.geoDA,classif.glmboost,classif.glmnet,classif.h2o.deeplearning,classif.h2o.gbm,classif.h2o.glm,classif.h2o.randomForest,classif.IBk,classif.J48,classif.JRip,classif.kknn,classif.linDA,classif.mda,classif.mlp,classif.neuralnet,classif.nnTrain,classif.nodeHarvest,classif.OneR,classif.pamr,classif.PART,classif.penalized,classif.plr,classif.quaDA,classif.randomForestSRC,classif.rda,classif.rknn,classif.rotationForest,classif.rrlda,classif.saeDNN,classif.sda,classif.sparseLDA,cluster.Cobweb,cluster.dbscan,cluster.EM,cluster.FarthestFirst,cluster.SimpleKMeans,cluster.XMeans,multilabel.cforest,multilabel.randomForestSRC,regr.bartMachine,regr.bcart,regr.bgp,regr.bgpllm,regr.blm,regr.brnn,regr.bst,regr.btgp,regr.btgpllm,regr.btlm,regr.cforest,regr.crs,regr.ctree,regr.cvglmnet,regr.earth,regr.evtree,regr.extraTrees,regr.FDboost,regr.gamboost,regr.glmboost,regr.glmnet,regr.GPfit,regr.h2o.deeplearning,regr.h2o.gbm,regr.h2o.glm,regr.h2o.randomForest,regr.IBk,regr.kknn,regr.km,regr.laGP,regr.mars,regr.mob,regr.nodeHarvest,regr.penalized,regr.randomForestSRC,regr.rknn,regr.rsm,regr.slim,surv.cforest,surv.CoxBoost,surv.cv.CoxBoost,surv.cvglmnet,surv.gamboost,surv.glmboost,surv.glmnet,surv.randomForestSRC
+## Check ?learners to see which packages you need or install mlr with all suggestions.</code></pre>
+<pre class="r"><code>head(lrns[c(&quot;class&quot;, &quot;package&quot;)])</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["class"],"name":[1],"type":["chr"],"align":["left"]},{"label":["package"],"name":[2],"type":["chr"],"align":["left"]}],"data":[{"1":"classif.ada","2":"ada,rpart","_rn_":"1"},{"1":"classif.adaboostm1","2":"RWeka","_rn_":"2"},{"1":"classif.bartMachine","2":"bartMachine","_rn_":"3"},{"1":"classif.binomial","2":"stats","_rn_":"4"},{"1":"classif.boosting","2":"adabag,rpart","_rn_":"5"},{"1":"classif.C50","2":"C50","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<pre class="r"><code># Lista de métodos que pueden aplicarse 
+# a una tarea concreta
+lrns &lt;- listLearners(regr_task)</code></pre>
+<pre><code>## Warning in listLearners.character(td$type, union(props, properties), quiet, : The following learners could not be constructed, probably because their packages are not installed:
+## classif.ada,classif.adaboostm1,classif.bartMachine,classif.boosting,classif.bst,classif.cforest,classif.clusterSVM,classif.ctree,classif.cvglmnet,classif.dbnDNN,classif.dcSVM,classif.earth,classif.evtree,classif.extraTrees,classif.fdausc.glm,classif.fdausc.kernel,classif.fdausc.knn,classif.fdausc.np,classif.gamboost,classif.gaterSVM,classif.geoDA,classif.glmboost,classif.glmnet,classif.h2o.deeplearning,classif.h2o.gbm,classif.h2o.glm,classif.h2o.randomForest,classif.IBk,classif.J48,classif.JRip,classif.kknn,classif.linDA,classif.mda,classif.mlp,classif.neuralnet,classif.nnTrain,classif.nodeHarvest,classif.OneR,classif.pamr,classif.PART,classif.penalized,classif.plr,classif.quaDA,classif.randomForestSRC,classif.rda,classif.rknn,classif.rotationForest,classif.rrlda,classif.saeDNN,classif.sda,classif.sparseLDA,cluster.Cobweb,cluster.dbscan,cluster.EM,cluster.FarthestFirst,cluster.SimpleKMeans,cluster.XMeans,multilabel.cforest,multilabel.randomForestSRC,regr.bartMachine,regr.bcart,regr.bgp,regr.bgpllm,regr.blm,regr.brnn,regr.bst,regr.btgp,regr.btgpllm,regr.btlm,regr.cforest,regr.crs,regr.ctree,regr.cvglmnet,regr.earth,regr.evtree,regr.extraTrees,regr.FDboost,regr.gamboost,regr.glmboost,regr.glmnet,regr.GPfit,regr.h2o.deeplearning,regr.h2o.gbm,regr.h2o.glm,regr.h2o.randomForest,regr.IBk,regr.kknn,regr.km,regr.laGP,regr.mars,regr.mob,regr.nodeHarvest,regr.penalized,regr.randomForestSRC,regr.rknn,regr.rsm,regr.slim,surv.cforest,surv.CoxBoost,surv.cv.CoxBoost,surv.cvglmnet,surv.gamboost,surv.glmboost,surv.glmnet,surv.randomForestSRC
+## Check ?learners to see which packages you need or install mlr with all suggestions.</code></pre>
+<pre class="r"><code>head(lrns[c(&quot;class&quot;, &quot;package&quot;)])</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["class"],"name":[1],"type":["chr"],"align":["left"]},{"label":["package"],"name":[2],"type":["chr"],"align":["left"]}],"data":[{"1":"regr.cubist","2":"Cubist","_rn_":"1"},{"1":"regr.featureless","2":"mlr","_rn_":"2"},{"1":"regr.gausspr","2":"kernlab","_rn_":"3"},{"1":"regr.gbm","2":"gbm","_rn_":"4"},{"1":"regr.glm","2":"stats","_rn_":"5"},{"1":"regr.ksvm","2":"kernlab","_rn_":"6"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<p><strong>Ejercicio</strong></p>
+<p>Listar los métodos que se pueden aplicar a la tarea de regresión del <em>dataset</em> <code>BostonHousing</code> y la lista de los que se pueden aplicar a la tarea de clasificación del <em>dataset</em> <code>Glass</code> construido antes.</p>
+<div class="tutorial-exercise" data-label="task_learners" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<pre class="text"><code>lrns &lt;- listLearners(regr_task)
+head(lrns[c(&quot;class&quot;, &quot;package&quot;)])</code></pre>
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<p>Si en la función <code>listLearners()</code> añadimos el argumento <code>create = TRUE</code>, no nos devuelve la lista de métodos, sino que crea una lista con los objetos necesarios (solo aquellos que estén realmente instalados) y así podríamos utilizarlos directamente.</p>
+<pre class="r"><code>lrns &lt;- listLearners(regr_task, create = TRUE)</code></pre>
+<pre><code>## Warning in listLearners.character(td$type, union(props, properties), quiet, : The following learners could not be constructed, probably because their packages are not installed:
+## classif.ada,classif.adaboostm1,classif.bartMachine,classif.boosting,classif.bst,classif.cforest,classif.clusterSVM,classif.ctree,classif.cvglmnet,classif.dbnDNN,classif.dcSVM,classif.earth,classif.evtree,classif.extraTrees,classif.fdausc.glm,classif.fdausc.kernel,classif.fdausc.knn,classif.fdausc.np,classif.gamboost,classif.gaterSVM,classif.geoDA,classif.glmboost,classif.glmnet,classif.h2o.deeplearning,classif.h2o.gbm,classif.h2o.glm,classif.h2o.randomForest,classif.IBk,classif.J48,classif.JRip,classif.kknn,classif.linDA,classif.mda,classif.mlp,classif.neuralnet,classif.nnTrain,classif.nodeHarvest,classif.OneR,classif.pamr,classif.PART,classif.penalized,classif.plr,classif.quaDA,classif.randomForestSRC,classif.rda,classif.rknn,classif.rotationForest,classif.rrlda,classif.saeDNN,classif.sda,classif.sparseLDA,cluster.Cobweb,cluster.dbscan,cluster.EM,cluster.FarthestFirst,cluster.SimpleKMeans,cluster.XMeans,multilabel.cforest,multilabel.randomForestSRC,regr.bartMachine,regr.bcart,regr.bgp,regr.bgpllm,regr.blm,regr.brnn,regr.bst,regr.btgp,regr.btgpllm,regr.btlm,regr.cforest,regr.crs,regr.ctree,regr.cvglmnet,regr.earth,regr.evtree,regr.extraTrees,regr.FDboost,regr.gamboost,regr.glmboost,regr.glmnet,regr.GPfit,regr.h2o.deeplearning,regr.h2o.gbm,regr.h2o.glm,regr.h2o.randomForest,regr.IBk,regr.kknn,regr.km,regr.laGP,regr.mars,regr.mob,regr.nodeHarvest,regr.penalized,regr.randomForestSRC,regr.rknn,regr.rsm,regr.slim,surv.cforest,surv.CoxBoost,surv.cv.CoxBoost,surv.cvglmnet,surv.gamboost,surv.glmboost,surv.glmnet,surv.randomForestSRC
+## Check ?learners to see which packages you need or install mlr with all suggestions.</code></pre>
+<pre class="r"><code>head(lrns)</code></pre>
+<pre><code>## [[1]]
+## Learner regr.cubist from package Cubist
+## Type: regr
+## Name: Cubist; Short name: cubist
+## Class: regr.cubist
+## Properties: missings,numerics,factors
+## Predict-Type: response
+## Hyperparameters: 
+## 
+## 
+## [[2]]
+## Learner regr.featureless from package mlr
+## Type: regr
+## Name: Featureless regression; Short name: featureless
+## Class: regr.featureless
+## Properties: numerics,factors,ordered,missings,functionals
+## Predict-Type: response
+## Hyperparameters: 
+## 
+## 
+## [[3]]
+## Learner regr.gausspr from package kernlab
+## Type: regr
+## Name: Gaussian Processes; Short name: gausspr
+## Class: regr.gausspr
+## Properties: numerics,factors,se
+## Predict-Type: response
+## Hyperparameters: fit=FALSE
+## 
+## 
+## [[4]]
+## Learner regr.gbm from package gbm
+## Type: regr
+## Name: Gradient Boosting Machine; Short name: gbm
+## Class: regr.gbm
+## Properties: missings,numerics,factors,weights,featimp
+## Predict-Type: response
+## Hyperparameters: distribution=gaussian,keep.data=FALSE
+## 
+## 
+## [[5]]
+## Learner regr.glm from package stats
+## Type: regr
+## Name: Generalized Linear Regression; Short name: glm
+## Class: regr.glm
+## Properties: numerics,factors,se,weights
+## Predict-Type: response
+## Hyperparameters: family=gaussian,model=FALSE
+## 
+## 
+## [[6]]
+## Learner regr.ksvm from package kernlab
+## Type: regr
+## Name: Support Vector Machines; Short name: ksvm
+## Class: regr.ksvm
+## Properties: numerics,factors
+## Predict-Type: response
+## Hyperparameters: fit=FALSE</code></pre>
+</div>
+</div>
+<div id="section-entrenamiento" class="section level2">
+<h2>Entrenamiento</h2>
+<p>Entrenar un método significa ajustar un modelo a un <em>dataset</em> en particular. En <code>mlr</code>, esto se hace llamando a la función <code>train()</code> con un <code>Learner</code> y una <code>Task()</code>.</p>
+<p>Pongamos como ejemplo de clasificación la tarea de clasificar usando <em>random ferns</em> del paquete <code>rFerns</code> el <em>dataset</em> <code>iris</code>:</p>
+<pre class="r"><code># Generamos la tarea
+task &lt;- makeClassifTask(data = iris, target = &quot;Species&quot;)
+
+# Generamos el método
+lrn &lt;- makeLearner(&quot;classif.rFerns&quot;)
+
+# Lo entrenamos
+iris_model &lt;- train(lrn, task)
+iris_model</code></pre>
+<pre><code>## Model for learner.id=classif.rFerns; learner.class=classif.rFerns
+## Trained on: task.id = iris; obs = 150; features = 4
+## Hyperparameters:</code></pre>
+<p>En el ejemplo anterior, no es absolutamente necesario crear explícitamente el <em>learner</em>. Como regla general, habría que crearlo con <code>makeLearner()</code> expresamente si se desea cambiar algunos de los <em>hiperparámetros</em> por defecto del método.</p>
+<p>Por otro lado, <code>train()</code> y otras funciones también aceptan el nombre de la clase y llaman a <code>makeLearner()</code> internamente con los parámetros por defecto.</p>
+<pre class="r"><code>iris_model &lt;- train(&quot;classif.rFerns&quot;, task)
+iris_model</code></pre>
+<pre><code>## Model for learner.id=classif.rFerns; learner.class=classif.rFerns
+## Trained on: task.id = iris; obs = 150; features = 4
+## Hyperparameters:</code></pre>
+<p>La función <code>train()</code>, por tanto, ejerce de interfaz al entrenamiento de todo tipo de métodos, independientemente del tipo de problema de aprendizaje (<em>clustering</em>, <em>regresión</em> o <em>clasificación</em>).</p>
+<p><strong>Ejercicio</strong></p>
+<p>Entrenar un modelo de regresión sobre <code>chicken_task</code>. Primero habrá que determinar qué modelos están disponibles para dicha tarea, y después entrenar uno de ellos. Almacenar el modelo en la variable <code>chicken_model</code>.</p>
+<div class="tutorial-exercise" data-label="chicken_model" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<pre><code>&lt;div id=&quot;chicken_model-hint&quot;&gt;
+**Pista:** Es momento de usar `listLearners()` y después `train()`.
+&lt;/div&gt;</code></pre>
+<p><strong>Ejercicio</strong></p>
+<p>Entrenar un modelo de regresión sobre la tarea <code>glass_task</code>. Determinar en primera instancia qué modelos de clasificación son válidos para dicha tarea, y después seleccionar uno de dichos <em>learners</em> para crear y entrenar el modelo. Almacenar el modelo en la variable <code>glass_model</code>.</p>
+<div class="tutorial-exercise" data-label="glass_model" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<div id="section-glass_model-hint">
+<pre><code>**Pista:** Es momento de usar `listLearners()` y después `train()`.</code></pre>
+</div>
+<div id="section-acceder-a-los-modelos-entrenados" class="section level3">
+<h3>Acceder a los modelos entrenados</h3>
+<p>La función <code>train()</code> devuelve un objeto que contiene en su interior el modelo ya entrenado. Para extraerlo, se usa la función <code>getLearnerModel()</code>.</p>
+<p>En el siguiente ejemplo, vamos a extraer el modelo ya entrenado del <em>clustering</em> del <em>dataset</em> iris que mencionamos antes:</p>
+<pre class="r"><code>getLearnerModel(iris_model)</code></pre>
+<pre><code>## 
+##  Forest of 1000 ferns of a depth 5.
+## 
+##  OOB error 5.33%; OOB confusion matrix:
+##             True
+## Predicted    setosa versicolor virginica
+##   setosa         50          0         0
+##   versicolor      0         46         4
+##   virginica       0          4        46</code></pre>
+<p><strong>Ejercicio</strong></p>
+Visualizar el modelo, usando lo aprendido, obtenido para los datasets <code>Glass</code> y <code>ChickenWeight</code> que hemos creado en los ejercicios anteriores.
+<div class="tutorial-exercise" data-label="getlearner" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<pre><code>&lt;div id=&quot;getlearner-hint&quot;&gt;
+**Pista:** Aplicar `getLearnerModel()` a `glass_model` y a `chicken_model`.
+&lt;/div&gt;</code></pre>
+</div>
+<div id="section-opciones-mas-avanzadas" class="section level3">
+<h3>Opciones más avanzadas</h3>
+<p>Por defecto, el <em>dataset</em> al completo se usa para el entrenamiento. Sin embargo, si se desea separar el dataset en un conjunto de entrenamiento y otro de test, el argumento <code>subset</code> de la función <code>train()</code> permite indicar cuáles de las observaciones usar para el entrenamiento.</p>
+<p>Por ejemplo, podemos ajustar un modelo de regresión lineal (correspondiente a <code>regr.lm</code>) al <em>dataset</em> <code>BostonHousing</code>, seleccionando, de forma aleatoria, 1/3 de las observaciones para el entrenamiento.</p>
+<pre class="r"><code># Número total de observaciones
+n &lt;- getTaskSize(regr_task)
+# Tomar 1/3 de la muestra
+train_set &lt;- sample(n, size = n/3)
+# Entrenar el método
+bh_model &lt;- train(&quot;regr.lm&quot;, regr_task, subset = train_set)
+bh_model</code></pre>
+<pre><code>## Model for learner.id=regr.lm; learner.class=regr.lm
+## Trained on: task.id = bh; obs = 168; features = 13
+## Hyperparameters:</code></pre>
+</div>
+</div>
+<div id="section-prediccion" class="section level2">
+<h2>Predicción</h2>
+<p>En aprendizaje supervisado, predecir es estimar los valores de la variable objetivo (la que se ha marcado como <code>target</code> al crear la tarea) en nuevas observaciones.</p>
+<p>En general, basta con llamar a la función <code>predict()</code> con el objeto devuelto por <code>train()</code> y pasando los nuevos datos para los que se quiere la predicción. Hay dos formas de pasar los datos:</p>
+<ul>
+<li>Usar el argumento <code>task</code> para pasar una tarea creada con una de las funciones de creación de tareas.</li>
+<li>Pasar un <code>data.frame</code> usando el argumento <code>newdata</code>.</li>
+</ul>
+<p>Además, es posible usar el argumento <code>subset</code> de <code>predict()</code> para especificar qué observaciones usar al predecir.</p>
+<p>Por ejemplo, tomemos el conjunto de datos <code>BostonHousing</code> y lo vamos a usar para entrenar con el 80% de los datos y testeamos con el 20% restante:</p>
+<pre class="r"><code># Número de observaciones
+n &lt;- getTaskSize(regr_task)
+
+# Creamos los conjuntos de entrenamiento y de test:
+# 80% aleatorio de los datos para entrenar
+train_set &lt;- sample(n, size = round(0.8 * n))
+# El restante para testear
+test_set &lt;- setdiff(1:n, train_set)
+
+# Entrenamos con el 80%:
+model &lt;- train(&quot;regr.lm&quot;, 
+               task = regr_task, 
+               subset = train_set)
+
+# Testeamos en el otro 20%:
+prediction &lt;- predict(model, 
+                      task = regr_task, 
+                      subset = test_set)</code></pre>
+<p>El objeto <code>prediction</code> de más arriba encierra dentro un <em>dataframe</em> cuyas columnas son:</p>
+<ul>
+<li>Un <code>id</code> para saber a qué observación del <em>dataset</em> original corresponde la predicción.</li>
+<li>En caso de aprendizaje supervisado, una columna <code>truth</code> con el valor real de la variable a predecir.</li>
+<li>Una columna <code>response</code> con la predicción realizada: la clase predicha en problemas de <em>clasificación</em> o el valor numérico estimado en problemas de <em>regresión</em>.</li>
+</ul>
+<pre class="r"><code>prediction %&gt;% 
+  as.data.frame() %&gt;% 
+  head()</code></pre>
+<div data-pagedtable="false">
+<script data-pagedtable-source type="application/json">
+{"columns":[{"label":[""],"name":["_rn_"],"type":[""],"align":["left"]},{"label":["id"],"name":[1],"type":["int"],"align":["right"]},{"label":["truth"],"name":[2],"type":["dbl"],"align":["right"]},{"label":["response"],"name":[3],"type":["dbl"],"align":["right"]}],"data":[{"1":"5","2":"36.2","3":"27.67557","_rn_":"5"},{"1":"7","2":"22.9","3":"22.80112","_rn_":"7"},{"1":"16","2":"19.9","3":"19.14798","_rn_":"16"},{"1":"18","2":"17.5","3":"16.60755","_rn_":"18"},{"1":"19","2":"20.2","3":"16.09301","_rn_":"19"},{"1":"32","2":"14.5","3":"17.72116","_rn_":"32"}],"options":{"columns":{"min":{},"max":[10]},"rows":{"min":[10],"max":[10]},"pages":{}}}
+  </script>
+</div>
+<p><strong>Ejercicio</strong></p>
+<p>Para el dataset <code>ChickenWeight</code>, repetir el proceso anterior de: dividir en conjuntos de entrenamiento y de test, entrenar únicamente con el conjunto de entrenamiento y mostrar las primeras filas de la predicción sobre el conjunto de test.</p>
+<div class="tutorial-exercise" data-label="eval_chicken" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<p><strong>Ejercicio</strong></p>
+<p>Para el dataset <code>Glass</code>, repetir el proceso anterior de: dividir en conjuntos de entrenamiento y de test, entrenar únicamente con el conjunto de entrenamiento y mostrar las primeras filas de la predicción sobre el conjunto de test.</p>
+<div class="tutorial-exercise" data-label="eval_glass" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<div id="section-comprobar-el-desempeno-del-modelo" class="section level3">
+<h3>Comprobar el desempeño del modelo</h3>
+<p>Cuando el aprendizaje es supervisado y se conoce, del conjunto de test, los valores reales de la variable a predecir, podemos medir el desempeño del modelo entrenado:</p>
+<ul>
+<li>Si es clasificación, podemos medir la precisión, o proporción de observaciones clasificadas correctamente.</li>
+<li>En problemas de regresión, es común medir el error cuadrático medio.</li>
+</ul>
+<p>Las funciones en <code>R</code> para calcular dichos valores son:</p>
+<pre class="r"><code>accuracy &lt;- function(actual, predicted) {
+  
+  sum(actual == predicted) / length(predicted) * 100
+  
+}
+
+rmse &lt;- function(actual, predicted) {
+  
+  (actual - predicted) ^ 2 %&gt;% mean() %&gt;% sqrt()
+  
+}</code></pre>
+<p>** Ejercicio **</p>
+<p>Sobre los datos estimados en los ejercicios anteriores, calcular el error cuadrático medio en los resultados del problema de regresión (<code>ChickenWeight</code>) y la precisión en el problema de clasificación (<code>Glass</code>).</p>
+<div class="tutorial-exercise" data-label="eval_problems" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<pre><code>&lt;div id=&quot;eval_problems-hint&quot;&gt;
+**Pista:** `actual` debe ser la columna `truth` del objeto `prediction`, mientras que `predicted` es la columna `response`.
+&lt;/div&gt;</code></pre>
+</div>
+<div id="section-clasificacion-matriz-de-confusion" class="section level3">
+<h3>Clasificación: Matriz de confusión</h3>
+<p>En el caso particular de problemas de clasificación, es común generar una matriz de confusión, mediante una llamada a la función <code>calculateConfusionMatrix()</code>.</p>
+<p>Las columnas representan los valores estimados y las filas son las clases reales.</p>
+<p>Por tanto, el número de observaciones clasificadas correctamente estarán en la diagonal principal de dicha matriz, mientras que las incorrectas están fuera de la diagonal.</p>
+<p><strong>Ejercicio</strong></p>
+<p>Para el problema de clasificación del <em>dataset</em> <code>Glass</code>, encontrar la matriz de confusión.</p>
+<div class="tutorial-exercise" data-label="cm" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+</div>
+</div>
+<div id="section-ajuste-de-hiperparametros" class="section level2">
+<h2>Ajuste de hiperparámetros</h2>
+<p>Muchos algoritmos de aprendizaje computacional tienen hiperparámetros que necesitan ser especificados. Si los selecciona el usuario, se pueden especificar mediante la llamada apropiada a la función <code>makeLearner()</code>.</p>
+<p>En otras ocasiones, los hiperparámetros óptimos para un problema no son obvios y es preferible realizar un ajuste automático que identifique los valores que conlleven el mejor desempeño.</p>
+<p>El primer paso es determinar qué hiperparámetros podemos ajustar en el método que queremos testear. Para ello, usamos la función <code>getLearnerParamSet()</code>.</p>
+<p>Supongamos que el método elegido es <code>classif.gbm</code>, para la tarea de clasificación de nuestros ejemplos (<code>task</code> para el <em>dataset</em> <code>iris</code>). Entonces los parámetros son:</p>
+<pre class="r"><code>getLearnerParamSet(&quot;classif.gbm&quot;)</code></pre>
+<pre><code>##                       Type len   Def
+## distribution      discrete   -     -
+## n.trees            integer   -   100
+## cv.folds           integer   -     0
+## interaction.depth  integer   -     1
+## n.minobsinnode     integer   -    10
+## shrinkage          numeric   - 0.001
+## bag.fraction       numeric   -   0.5
+## train.fraction     numeric   -     1
+## keep.data          logical   -  TRUE
+## verbose            logical   - FALSE
+##                                                     Constr Req Tunable
+## distribution      bernoulli,adaboost,huberized,multinomial   -    TRUE
+## n.trees                                           1 to Inf   -    TRUE
+## cv.folds                                       -Inf to Inf   -    TRUE
+## interaction.depth                                 1 to Inf   -    TRUE
+## n.minobsinnode                                    1 to Inf   -    TRUE
+## shrinkage                                         0 to Inf   -    TRUE
+## bag.fraction                                        0 to 1   -    TRUE
+## train.fraction                                      0 to 1   -    TRUE
+## keep.data                                                -   -   FALSE
+## verbose                                                  -   -   FALSE
+##                   Trafo
+## distribution          -
+## n.trees               -
+## cv.folds              -
+## interaction.depth     -
+## n.minobsinnode        -
+## shrinkage             -
+## bag.fraction          -
+## train.fraction        -
+## keep.data             -
+## verbose               -</code></pre>
+<p>Como se puede observar, existen numerosos parámetros que podemos modificar. Para nuestros propósitos, consideremos algunos de los parámetros numéricos que podrían influir en el desempeño del clasificador (<code>distribution</code>, <code>n.trees</code> y <code>shrinkage</code>). Podemos observar cuáles son los valores por defectos de esos parámetros, para comprender cuál es la magnitud de las posibles alternativas a considerar.</p>
+<div id="section-definir-el-espacio-de-busqueda" class="section level3">
+<h3>Definir el espacio de búsqueda</h3>
+<p>Definimos el espacio de exploración de parámetros a partir de los que deseamos modificar, usando la función <code>makeParamSet()</code>:</p>
+<pre class="r"><code>param_set &lt;- makeParamSet(
+  makeDiscreteParam(&quot;distribution&quot;, 
+                    values = &quot;multinomial&quot;),
+  makeDiscreteParam(&quot;n.trees&quot;, values = seq(100, 1000, by = 100)),
+  makeNumericParam(&quot;shrinkage&quot;, lower = 0.001, upper = 0.1)
+)</code></pre>
+<p>Con las funciones <code>makeDiscreteParam()</code> y <code>makeNumericParam()</code> definimos los posibles valores, discretos o continuos, que testear.</p>
+<p>El siguiente paso es decirle al método cómo combinar los valores del <code>param_set</code> que se haya definido. Para ello, usamos el método <code>makeTuneControlGrid()</code>:</p>
+<pre class="r"><code>ctrl &lt;- makeTuneControlGrid(resolution = 15L)</code></pre>
+<p>Este mecanismo realiza una <em>búsqueda grid</em>, es decir, realiza todas las posibles combinaciones de los valores de los parámetros definidos con anterioridad. Para las variables numéricas (no discretas), se le ha indicado que tome 15 valores en el intervalo indicado.</p>
+</div>
+<div id="section-definicion-del-metodo-de-evaluacion" class="section level3">
+<h3>Definición del método de evaluación</h3>
+<p>El método más común para comparar las diversas ejecuciones es la validación cruzada, que la especificamos usando</p>
+<pre class="r"><code>resampling_cv &lt;- makeResampleDesc(&quot;CV&quot;, iters = 3L)</code></pre>
+<p><code>&quot;CV&quot;</code> indica que se realizará validación cruzada, con <code>iters = 3</code> estratos.</p>
+</div>
+<div id="section-comparacion" class="section level3">
+<h3>Comparación</h3>
+<p>Para realizar la comparación y búsqueda del mejor set de parámetros, usamos la función <code>tuneParams()</code>:</p>
+<pre class="r"><code>res &lt;- tuneParams(&quot;classif.gbm&quot;, 
+                  task = task, 
+                  resampling = resampling_cv, 
+                  par.set = param_set, 
+                  control = ctrl, 
+                  show.info = FALSE)
+res</code></pre>
+<pre><code>## Tune result:
+## Op. pars: distribution=multinomial; n.trees=200; shrinkage=0.0576
+## mmce.test.mean=0.0400000</code></pre>
+<p>De esta forma, tras ejecutar el método con todas las combinaciones de parámetros, nos devuelve el conjunto óptimo de hiperparámetros y el valor del error cometido por dicho <em>set</em>.</p>
+<p>Si se deseara construir un nuevo <em>learner</em> con esos parámetros, el siguiente comando toma los valores del resultado anterior y los copia en la creación de un nuevo método:</p>
+<pre class="r"><code>new_learner &lt;- setHyperPars(makeLearner(&quot;classif.gbm&quot;), par.vals = res$x)</code></pre>
+<p><strong>Ejercicio</strong></p>
+<p>Repetir todo el proceso para el clasificador <code>classif.knn</code> y la tarea <code>glass_task</code>, encontrar el mejor conjunto de parámetros y el error cometido por el mismo.</p>
+<div class="tutorial-exercise" data-label="hyperpars" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+
+<script type="application/shiny-prerendered" data-context="server-start">
+library(learnr)
+library(tidyverse)
+
+tutorial_options(exercise.timelimit = 60)
+knitr::opts_chunk$set(error = TRUE)
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+learnr:::register_http_handlers(session, metadata = NULL)
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-regre_task-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-regre_task-code-editor`)), session)
+output$`tutorial-exercise-regre_task-output` <- renderUI({
+  `tutorial-exercise-regre_task-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-classif_task-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-classif_task-code-editor`)), session)
+output$`tutorial-exercise-classif_task-output` <- renderUI({
+  `tutorial-exercise-classif_task-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-clasi_task-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-clasi_task-code-editor`)), session)
+output$`tutorial-exercise-clasi_task-output` <- renderUI({
+  `tutorial-exercise-clasi_task-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-task_learners-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-task_learners-code-editor`)), session)
+output$`tutorial-exercise-task_learners-output` <- renderUI({
+  `tutorial-exercise-task_learners-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-chicken_model-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-chicken_model-code-editor`)), session)
+output$`tutorial-exercise-chicken_model-output` <- renderUI({
+  `tutorial-exercise-chicken_model-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-glass_model-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-glass_model-code-editor`)), session)
+output$`tutorial-exercise-glass_model-output` <- renderUI({
+  `tutorial-exercise-glass_model-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-getlearner-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-getlearner-code-editor`)), session)
+output$`tutorial-exercise-getlearner-output` <- renderUI({
+  `tutorial-exercise-getlearner-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-eval_chicken-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-eval_chicken-code-editor`)), session)
+output$`tutorial-exercise-eval_chicken-output` <- renderUI({
+  `tutorial-exercise-eval_chicken-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-eval_glass-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-eval_glass-code-editor`)), session)
+output$`tutorial-exercise-eval_glass-output` <- renderUI({
+  `tutorial-exercise-eval_glass-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-eval_problems-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-eval_problems-code-editor`)), session)
+output$`tutorial-exercise-eval_problems-output` <- renderUI({
+  `tutorial-exercise-eval_problems-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-cm-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-cm-code-editor`)), session)
+output$`tutorial-exercise-cm-output` <- renderUI({
+  `tutorial-exercise-cm-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-hyperpars-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-hyperpars-code-editor`)), session)
+output$`tutorial-exercise-hyperpars-output` <- renderUI({
+  `tutorial-exercise-hyperpars-result`()
+})
+</script>
+ <!--html_preserve-->
+<script type="application/shiny-prerendered" data-context="dependencies">
+{"type":"list","attributes":{},"value":[{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["jquery"]},{"type":"character","attributes":{},"value":["1.11.3"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmd/h/jquery-1.11.3"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["jquery.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["rmarkdown"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["bootstrap"]},{"type":"character","attributes":{},"value":["3.3.5"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmd/h/bootstrap-3.3.5"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["viewport"]}},"value":[{"type":"character","attributes":{},"value":["width=device-width, initial-scale=1"]}]},{"type":"character","attributes":{},"value":["js/bootstrap.min.js","shim/html5shiv.min.js","shim/respond.min.js"]},{"type":"character","attributes":{},"value":["css/cerulean.min.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["rmarkdown"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["pagedtable"]},{"type":"character","attributes":{},"value":["1.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmd/h/pagedtable-1.1"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["js/pagedtable.js"]},{"type":"character","attributes":{},"value":["css/pagedtable.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["rmarkdown"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["highlightjs"]},{"type":"character","attributes":{},"value":["9.12.0"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmd/h/highlightjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["highlight.js"]},{"type":"character","attributes":{},"value":["textmate.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["rmarkdown"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/tutorial"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial.js"]},{"type":"character","attributes":{},"value":["tutorial.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial-autocompletion"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/tutorial"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial-autocompletion.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial-diagnostics"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/tutorial"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial-diagnostics.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial-format"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmarkdown/templates/tutorial/resources"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial-format.js"]},{"type":"character","attributes":{},"value":["tutorial-format.css","rstudio-theme.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["jquery"]},{"type":"character","attributes":{},"value":["1.11.3"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmd/h/jquery-1.11.3"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["jquery.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["rmarkdown"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["font-awesome"]},{"type":"character","attributes":{},"value":["5.0.13"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmd/h/fontawesome"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["js/fontawesome-all.min.js","js/fa-v4-shims.min.js"]},{"type":"character","attributes":{},"value":["css/fa-svg-with-js.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["rmarkdown"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["bootbox"]},{"type":"character","attributes":{},"value":["4.4.0"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/bootbox"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["bootbox.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["localforage"]},{"type":"character","attributes":{},"value":["1.5"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/localforage"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["localforage.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/tutorial"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial.js"]},{"type":"character","attributes":{},"value":["tutorial.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial-autocompletion"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/tutorial"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial-autocompletion.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial-diagnostics"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/tutorial"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial-diagnostics.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]}]}]}
+</script>
+<!--/html_preserve-->
+</div>
+</div>
+
+</div> <!-- topics -->
+
+<div class="topicsContainer">
+<div class="topicsPositioner">
+<div class="band">
+<div class="bandContent topicsListContainer">
+
+<!-- begin doc-metadata -->
+<div id="doc-metadata">
+<h2 class="title toc-ignore" style="display:none;">Tutorial de <code>mlr</code></h2>
+</div>
+<!-- end doc-metadata -->
+
+</div> <!-- bandContent.topicsListContainer -->
+</div> <!-- band -->
+</div> <!-- topicsPositioner -->
+</div> <!-- topicsContainer -->
+
+
+</div> <!-- bandContent page -->
+</div> <!-- pageContent band -->
+
+
+
+
+<script>
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+</script>
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+
+</html>
