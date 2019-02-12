@@ -1,0 +1,755 @@
+---
+title: "Tutorial de Visualización de Datos"
+output: learnr::tutorial
+runtime: shiny_prerendered
+---
+
+```{r setup, include=FALSE}
+library(learnr)
+library(tidyverse)
+
+tutorial_options(exercise.timelimit = 60)
+knitr::opts_chunk$set(error = TRUE)
+
+chap <- 0
+lc <- 0
+```
+
+## Introducción a la Visualización de Datos
+
+Una de las herramientas más importantes que debemos tener en nuestra caja de herramientas de _Ciencia de Datos_ es la visualización. Al visualizar nuestros datos, podemos conseguir una comprensión de gran valor que no podríamos obtener simplemente mirando a los datos brutos en formato de _hoja de cálculo_.
+
+Usaremos el paquete `ggplot2`, que proporciona muchas formas de personalizar los gráficos, y que se fundamenta en la teoría denominada la _Gramática de los Gráficos_.
+
+En su nivel más básico, una gráfica nos proporciona una forma cómoda de echar un vistazo a cómo las variables cuantitativas se relacionan unas con otras en términos de su _centro_ (donde los valores tienden a estar localizados) y su _dispersión_ (cuánto varían los valores alrededor de su centro).
+
+Asimismo, las gráficas también nos ayudan a identificar patrones y valores anómalos en nuestros datos. Una extensión de esta idea es poder comparar la _distribución_ de una variable cuantitativa (la _forma_ que toma el conjunto de valores de dicha variable) según los valores de una variable categórica diferente.
+
+Se debería diseñar cada gráfica de forma que se enfaticen los hallazgos que se quiere transmitir a la audiencia.
+
+
+
+## Paquetes necesarios
+
+Necesitamos cargar todos los paquetes necesarios para este tutorial (los deberíamos tener todos ya instalados de unidades anteriores).
+
+```{r message=FALSE}
+library(nycflights13)
+library(ggplot2)
+library(dplyr)
+```
+
+```{r message=FALSE, warning=FALSE, echo=FALSE}
+# Paquetes necesarios internamente, no en el texto.
+library(gapminder)
+library(knitr)
+library(kableExtra)
+library(readr)
+```
+
+
+## La Gramática de los Gráficos {#grammarofgraphics}
+
+Comenzaremos con una breve discusión acerca del marco teórico para la visualización de datos conocido como "La gramática de los gráficos", que sirve de base para el paquete `ggplot2`. Podemos pensar en cómo construimos frases en español, combinando diferentes elementos, como sustantivos, verbos, partículas, sujetos, objetos, etc. Sin embargo, no podemos combinar estos elementos en ningún orden arbitrario, debemos hacerlo siguiendo un conjunto de reglas conocidas como _gramática lingüística_. De manera similar a una gramática lingüística, "La gramática de los gráficos" define un conjunto de reglas para la construcción de *gráficos estadísticos* mediante la combinación de diferentes tipos de *capas*. 
+
+### Componentes de la gramática
+
+En resumen, la gramática nos dice que:
+
+> Un gráfico estadístico es un 'mapeo' de las variables de datos (`data`) a los atributos estéticos (`aes`) de ciertos objetos geométricos (`geom`).
+
+Específicamente, podemos dividir un gráfico en los siguientes tres componentes esenciales:
+
+1. `data`: El conjunto de datos compuesto por variables que mapeamos.
+1. `geom`: El objeto geométrico en cuestión. Esto se refiere al tipo de objeto que podemos observar en una gráfica. Por ejemplo: puntos, líneas y barras.
+1. `aes`: Atributos estéticos del objeto geométrico. Por ejemplo, posición en coordenadas x/y, color, forma y tamaño. Cada atributo estético asignado se puede mapear a una variable en nuestro conjunto de datos.
+
+
+### Los datos de gapminder {#gapminder}
+
+```{r, echo=FALSE}
+gapminder_2007 <- gapminder %>% 
+  filter(year == 2007) %>% 
+  select(-year) %>% 
+  rename(
+    Country = country,
+    Continent = continent,
+    `Life Expectancy` = lifeExp,
+    `Population` = pop,
+    `GDP per Capita` = gdpPercap
+  )
+```
+
+En febrero de 2006, un estadístico llamado Hans Rosling dio una charla en TED titulada ["Las mejores estadísticas que jamás hayas visto"](https://www.ted.com/talks/hans_rosling_shows_the_best_stats_you_ve_ever_seen) donde presentó economía mundial, salud y datos de desarrollo del sitio web [gapminder.org](http://www.gapminder.org/tools/#_locale_id=en;&chart-type=bubbles). Por ejemplo, para los `r nrow (gapminder_2007)` países incluidos a partir de 2007, consideremos solo los primeros 6 países cuando están listados alfabéticamente:
+
+```{r gapminder-2007, echo=FALSE}
+gapminder_2007 %>% 
+  head() %>% 
+  kable(
+    digits = 2,
+    caption = "Datos Gapminder 2007: 6 primeros países de 142", 
+    booktabs = TRUE
+  ) %>% 
+  kable_styling(font_size = ifelse(knitr:::is_latex_output(), 10, 16),
+                latex_options = c("HOLD_position"))
+```
+
+Cada fila en esta tabla corresponde a un país en 2007. Para cada fila, tenemos 5 columnas:
+
+1. **Country**: Nombre del país.
+1. **Continent**: De cuál de los cinco continentes forma parte el país. Debemos tener en cuenta que "América" incluye países en América del Norte y del Sur y que se excluye la Antártida.
+1. **Life Expectancy**: Esperanza de vida en años.
+1. **Population**: Número de personas viviendo en el país.
+1. **GDP per Capita**: Producto interior bruto _per capita_ (en dólares USA).
+
+Ahora considere la figura siguiente, que representa estos datos para todos los `r nrow (gapminder_2007)` países.
+
+<!--
+Note that R will deal with large numbers using scientific notation.  So in the legend for "Population", 1.25e+09 is 1.25 $\times$ 10^9^ = 1,250,000,000 = 1.25 billion. 
+-->
+
+```{r gapminder, fig.cap="Esperanza de vida con respecto al PIB per capita en 2007"}
+ggplot(data = gapminder_2007, 
+       mapping = aes(x = `GDP per Capita`, 
+                     y = `Life Expectancy`,
+                     size = Population, 
+                     col = Continent)) +
+  geom_point() +
+  labs(x = "PIB per capita", y = "Esperanza de vida")
+```
+
+Veamos esta gráfica a través de la gramática de los gráficos:
+
+1. La variable  **GDP per Capita** se mapea al parámetro estético (`aes`) posición-`x` de los puntos.
+1. La variable **Life Expectancy** se mapea al parámetro estético  posición-`y` de los puntos.
+1. La variable **Population** se mapea al parámetro estético del tamaño (`size`) de los puntos.
+1. La variable **Continent** se mapea al parámetro `color` de los puntos.
+
+Veremos en breve que `data` se corresponde con el _dataframe_ particular donde se almacenan nuestros datos y una _variable de datos_ se corresponde con una columna particular en el _dataframe_. Además, el tipo de objeto geométrico (`geom`) considerado en esta gráfica son puntos. Sin embargo, las gráficas no se limitan a puntos, habrá líneas, cajas...
+
+Resumamos los tres componentes esenciales de la gramática:
+
+```{r summary-table-gapminder, echo=FALSE}
+data_frame(
+  `variable` = c("GDP per Capita", "Life Expectancy", "Population", "Continent"),
+  aes = c("x", "y", "size", "color"),
+  geom = c("point", "point", "point", "point")
+) %>% 
+  kable(
+    caption = "Resumen de la gramática de gráficos para la gráfica anterior", 
+    booktabs = TRUE
+  ) %>% 
+  kable_styling(font_size = ifelse(knitr:::is_latex_output(), 10, 16),
+                latex_options = c("HOLD_position"))
+```
+
+### Otros componentes
+
+Hay otros componentes de la Gramática de Gráficos que también podemos controlar. A medida que empecemos a profundizar en la gramática de los gráficos, empezaremos a encontrar estos temas con más frecuencia. Sin embargo, en este tutorial mantendremos las cosas simples y solo trabajaremos con los dos componentes adicionales que se enumeran a continuación:
+
+- `facet`ear es dividir una gráfica en múltiples pequeñas gráficas correspondientes a los niveles de otra variable.
+- Ajustes de la `position` de los gráficos de barras.
+
+
+Existen otros componentes más complejos, como `scales` y sistemas de `coord`enadas.  En términos generales, la gramática de gráficos permite un alto grado de personalización de los gráficos y también un marco coherente para actualizarlos y modificarlos fácilmente.
+
+### El paquete `ggplot2`
+
+En este tutorial, usaremos el paquete `ggplot2` para la visualización de datos, que es una implementación de la Gramática de Gráficos para R. Los diversos componentes de la gramática de gráficos se especifican en la función `ggplot()` incluida en el paquete `ggplot2`, que espera, como mínimo, los siguientes argumentos (es decir, entradas):
+
+* El _dataframe_ donde existen las variables: el argumento `data`.
+* El mapeo de las variables a los atributos estéticos: el argumento `mapping` que especifica los atributos estéticos (`aes`) involucrados.
+
+Después de que hayamos especificado estos componentes, agregamos *capas* al gráfico usando el signo `+`. La capa más esencial para agregar a una gráfica es la capa que especifica qué tipo de objeto geométrico (`geom`) queremos que incluya la gráfica: puntos, líneas, barras y otros. Otras capas que podemos agregar a una gráfica incluyen capas que especifican el título de la gráfica, las etiquetas de los ejes, los temas visuales de las gráficas y las _facets_.
+
+Pongamos ahora en práctica la teoría de la gramática de los gráficos.
+
+
+
+---
+
+
+
+## Los 5 Gráficos con Nombre (Five Named Graphs) - Los 5NG {#FiveNG}
+
+Para mantener las cosas simples, solo aprenderemos cinco tipos diferentes de gráficos en este tutorial, cada uno con un nombre común. Llamamos a estos "cinco gráficos con nombre" los **5NG**:
+
+1. Gráficos de dispersión de puntos: _scatterplots_.
+1. Gráficos de líneas: _linegraphs_.
+1. Gráficos de cajas: _boxplots_.
+1. Histogramas: _histograms_.
+1. Gráficos de barras: _barplots_.
+
+Discutiremos algunas variaciones de estos gráficos, pero con este repertorio básico de gráficos en nuestra caja de herramientas, podremos visualizar una amplia gama de diferentes tipos de variables. Debemos tener en cuenta que ciertas gráficas solo son apropiadas para variables categóricas mientras que otras solo son apropiadas para variables cuantitativas. A medida que avancemos, deberemos preguntarnos qué gráfica tiene sentido en un determinado problema o conjunto de datos.
+
+
+
+---
+
+
+
+## 5NG#1: Gráfico de dispersión {#scatterplots}
+
+Los más simples de los 5NG son los *diagramas de dispersión*, también llamados diagramas bivariados. Te permiten visualizar la relación entre dos variables numéricas. Visualizaremos la relación entre las siguientes dos variables numéricas en el _dataframe_ `flights` incluido en el paquete `nycflights13`:
+
+
+1. `dep_delay`: retraso en la salida, en el eje horizontal `x`
+1. `arr_delay`: retraso en la llegada, en el eje vertical `y`
+
+para los vuelos de _Alaska Airlines_ que salen de NYC en 2013. Esto requiere reducir los datos desde los 336,776 vuelos que salieron de NYC en 2013, a solo los 714 vuelos de *Alaska Airlines* que salieron de NYC en 2013.
+
+Lo que esto significa computacionalmente es: tomaremos el _dataframe_ `flights`, extraeremos solo las 714 filas correspondientes a los vuelos de _Alaska Airlines_, y guardaremos esto en un nuevo _dataframe_ llamado `alaska_flights`. Ejecutemos el siguiente código para hacer esto:
+
+
+```{r}
+alaska_flights <- flights %>% 
+  filter(carrier == "AS")
+```
+
+
+### Diagramas de dispersión usando `geom_point` {#geompoint}
+
+Ahora repasemos el código que creará el diagrama de dispersión deseado, teniendo en cuenta nuestra discusión sobre la gramática de gráficos en la sección anterior. Usaremos la función `ggplot()` incluida en el paquete `ggplot2`.
+
+```{r, eval = FALSE}
+ggplot(data = alaska_flights, mapping = aes(x = dep_delay, y = arr_delay)) + 
+  geom_point()
+```
+
+Vamos a desglosar este código pieza a pieza:
+
+* Dentro de la función `ggplot()`, especificamos dos de los componentes de la gramática de gráficos como argumentos:
+    1. El _dataframe_ `alaska_flights` como variable `data`, al hacer `data = alaska_flights`.
+    1. El mapeo (`mapping`) estético (`aes`), haciendo `aes(x = dep_delay, y = arr_delay)`. Específicamente:
+        * la variable `dep_delay` se mapea a la posición `x`
+        * la variable `arr_delay` se mapea a la posición `y`
+* Añadimos una capa a la llamada a la función `ggplot()` usando el signo `+`. La capa en cuestión especifica el tercer componente de la gramática: el objeto geométrico (`geom`). En este caso, el objeto geométrico son puntos, establecidos al especificar `geom_point()`.
+
+
+Después de ejecutar el código anterior, notará dos salidas: un mensaje de advertencia y el gráfico que se muestra en la figura siguiente.
+
+```{r noalpha, fig.cap="Retrasos de llegada frente a retrasos de salida para vuelos de Alaska Airlines desde Nueva York en 2013", warning=TRUE, echo=FALSE}
+ggplot(data = alaska_flights, mapping = aes(x = dep_delay, y = arr_delay)) + 
+  geom_point()
+```
+
+Después de ejecutar el código anterior, R devuelve un mensaje de advertencia que nos alerta sobre el hecho de que se ignoraron 5 filas debido a que faltaban. Para 5 filas, el valor de `dep_delay` o` arr_delay`, o ambos, estban perdidos (registrados en R como `NA`), y por lo tanto, estas filas se ignoraron en nuestra gráfica. Al centrar nuestra atención en el diagrama de dispersión resultante, vemos que existe una relación positiva entre `dep_delay` y` arr_delay`: a medida que aumentan los retrasos de salida, los retrasos de llegada también tienden a aumentar. También notamos la gran masa de puntos agrupados cerca del origen (0, 0).
+
+
+Antes de continuar, consideremos algunas notas más sobre las _capas_ en el código anterior que generó el diagrama de dispersión:
+
+* Debemos tener en cuenta que el signo `+` aparece al final de una línea, y no al principio. Obtendremos un error en R si lo ponemos al principio.
+* Al añadir capas a una gráfica, se recomienda empezar una nueva línea después del `+` para que el código de cada capa esté en una nueva línea. A medida que agregamos más y más capas a las gráficas, veremos que esto mejorará en gran medida la legibilidad del código.
+* Para resaltar la importancia de agregar capas, en particular la capa que especifica el objeto geométrico (`geom`), consideremos la figura siguiente, donde no se añaden capas. ¡Una gráfica nada útil!
+
+
+```{r nolayers, fig.cap="Gráfica sin capas"}
+ggplot(data = alaska_flights, mapping = aes(x = dep_delay, y = arr_delay))
+```
+
+**Ejercicio**
+
+Crea un nuevo diagrama de dispersión utilizando diferentes variables en el marco de datos `alaska_flights` modificando el ejemplo anterior.
+
+```{r scatter, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+
+### Over-plotting {#overplotting}
+
+La gran masa de puntos cerca de (0, 0) en una Figura anterior puede causar cierta confusión, ya que es difícil determinar el número real de puntos que se dibujan. Éste es el resultado de un fenómeno llamado *overplotting*. Como puede suponerse, esto corresponde a valores que se representan uno encima del otro, una y otra vez. A menudo es difícil saber cuántos valores se representan de esta manera cuando observamos un diagrama de dispersión básico como el que tenemos aquí. Hay dos métodos para abordar el problema del _overplotting_:
+
+1. Ajustando la transparencia de los puntos.
+1. Agregando un pequeño "jitter" (empujoncillo) aleatorio a cada uno de los puntos.
+
+**Método 1: Cambiar la transparencia**
+
+La primera forma de abordar el exceso de representación es cambiando la transparencia de los puntos usando el argumento `alpha` en `geom_point()`. Por defecto, este valor se establece en `1`. Podemos cambiar este valor a cualquier número entre `0` y `1`, donde `0` establece que los puntos sean 100% transparentes y `1` establece que los puntos sean 100% opacos. El siguiente código es idéntico al usado anteriormente para hacer un _scatterplot_, pero con `alpha = 0.2` agregado a la llamada a `geom_point() `:
+
+
+```{r alpha, fig.cap="Scatterplot de los retrasos con alpha = 0.2"}
+ggplot(data = alaska_flights, 
+       mapping = aes(x = dep_delay, 
+                     y = arr_delay)) + 
+  geom_point(alpha = 0.2)
+```
+
+La característica clave a tener en cuenta es que la transparencia de los puntos es acumulativa: las áreas con un alto grado de _overplotting_ son más oscuras, mientras que las áreas con un grado más bajo son menos oscuras. HAy que tener en cuenta además que no hay ningún `aes()` que rodee a `alpha = 0.2`. Esto se debe a que no estamos asignando una variable a un atributo estético, sino simplemente cambiando la configuración predeterminada de `alpha`, que se aplica a nivel global en la capa.
+
+
+**Método 2: Añadir _jittering_ a los puntos**
+
+La segunda forma de abordar el exceso de puntos es añadir *jittering* a todos los puntos, en otras palabras, dar a cada punto un pequeño empujón en una dirección aleatoria. 
+
+En lugar de usar `geom_point()`, usamos `geom_jitter()`. Para especificar cuánto _jitter_ agregar, ajustamos los argumentos `width` y `height`. Esto corresponde con la fuerza con la que _se sacude_ la gráfica, medida en las unidades correspondientes a las variables horizontales y verticales (en este caso, minutos).
+
+```{r jitter, fig.cap="Gráfica de dispersión de los retrasos, con _jitter_"}
+ggplot(data = alaska_flights, 
+       mapping = aes(x = dep_delay, 
+                     y = arr_delay)) + 
+  geom_jitter(width = 30, 
+              height = 30)
+```
+
+Podemos observar que el código anterior es igual al usado para hacer el _scatterplot_ original, pero cambiando `geom_point()` por `geom_jitter()`. 
+
+El gráfico resultante nos ayuda un poco a tener una idea del _overplotting_, pero con un conjunto de datos relativamente grande como este (`r nrow (alaska_flights)` vuelos), se puede razonar que cambiar la transparencia de los puntos modificando `alpha` es más efectivo. En cuanto a la cantidad de _jitter_ que se debe agregar usando los argumentos `width` y` height`, es importante agregar solo jitter suficiente para romper cualquier superposición en los puntos, pero no tanto que alteremos completamente el patrón general de los puntos.
+
+**Ejercicio**
+
+Modificar las llamadas realizadas en el ejercicio anterior (sobre _scatterplots_) para incluir un valor de `alpha = 0.3` y, por otro lado, añadir _jitter_, usando valores apropiados para `width` y `height`.
+
+```{r scatter2, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+
+**Ejercicio**
+
+Modificar las llamada realizadas en el ejercicio anterior para cambiar el color (`color`) y el tamaño (`size`) de los puntos.
+
+```{r name, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+
+---
+
+
+## 5NG#2: Gráfico de líneas {#linegraphs}
+
+El siguiente de los cinco gráficos con nombre es el gráfico de líneas o lineales, que muestran la relación entre dos variables numéricas cuando la variable en el eje x, también llamada variable *explicativa*, es de naturaleza secuencial. En otras palabras, hay un orden inherente a la variable. El ejemplo más común es el que incluye cierta noción de _tiempo_ en el eje x: horas, días, semanas, años, etc. Como el tiempo es secuencial, conectamos observaciones consecutivas de la variable en el eje y con una línea. A este tipo de gráficas en los que el eje X representa una dimensión temporal también se llaman gráficos de *series temporales*. Estos gráficos deben evitarse cuando no hay un ordenamiento secuencial claro para la variable en el eje x. Ilustremos este tipo de gráficas utilizando otro conjunto de datos en el paquete `nycflights13`: el _dataframe_ `weather`.
+
+```{r}
+weather %>% 
+  head() %>% 
+  kable(
+    digits = 2,
+    caption = "Datos _weather_", 
+    booktabs = TRUE
+  ) %>% 
+  kable_styling(font_size = ifelse(knitr:::is_latex_output(), 10, 16),
+                latex_options = c("HOLD_position"))
+```
+
+Podemos ver que hay una variable llamada `temp` de registros de temperatura por hora en grados Fahrenheit en estaciones meteorológicas cerca de los tres aeropuertos de la ciudad de Nueva York: Newark (código `origin == EWR`), JFK y La Guardia (`LGA`). Sin embargo, en lugar de considerar las temperaturas por hora de todos los días en 2013 para los tres aeropuertos, para simplificar, solo consideraremos las temperaturas por hora en el aeropuerto de Newark durante los primeros 15 días en enero.
+
+```{r}
+early_january_weather <- weather %>% 
+  filter(origin == "EWR" & month == 1 & day <= 15)
+```
+
+
+### Gráficas de líneas con `geom_line()` {#geomline}
+
+Vamos a representar un gráfico lineal de temperaturas por hora en `early_january_weather` usando` geom_line()` en lugar de `geom_point()` como hicimos para los diagramas de dispersión:
+
+```{r hourlytemp, fig.cap="Temperatura por hora en Newark desde el 1 al 15 de enero de 2013"}
+ggplot(data = early_january_weather, 
+       mapping = aes(x = time_hour, 
+                     y = temp)) +
+  geom_line()
+```
+
+Al igual que con el código en el que usamos la función `ggplot()` que creó el diagrama de dispersión de los retrasos de salida y llegada para los vuelos de _Alaska Airlines_, vamos a analizar el código anterior pieza por pieza en términos de la gramática de gráficos:
+
+* Dentro de la llamada a la función `ggplot()`, especificamos dos de los componentes de la gramática de gráficos como argumentos:
+    1. El _dataframe_ `data` debe ser `early_january_weather`, configurando `data = early_january_weather`
+    1. La asignación estética `aes`, estableciendo `aes (x = time_hour, y = temp)`. Específicamente:
+        * La variable `time_hour` se asigna a la estética de la posición `x`.
+        * la variable `temp` se corresponde con la estética de la posición `y`
+* Añadimos una capa a la llamada a la función `ggplot()` usando el signo `+`. La capa en cuestión especifica el tercer componente de la gramática: el objeto geométrico (`geom`) en cuestión. En este caso, el objeto geométrico es una _línea_, que se establece al especificar `geom_line()`.
+
+**Ejercicio**
+
+Representa gráficamente una serie temporal de otra variable continua distinta de `temp`, para el aeropuerto de Newark, en los primeros 15 días de enero de 2013. Se puede elegir `humid` (humedad relativa en %), `wind_speed` (velocidad del viento en millas por hora), `precip` (precipitaciones, en pulgadas), `visib` (visibilidad, en millas) o `pressure` (la presión, en milibares).
+
+```{r line, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+
+---
+
+## 5NG#3: Histogramas {#histograms}
+
+Consideremos la variable `temp` en el _dataframe_ `weather` una vez más, pero a diferencia de los gráficos lineales anteriores, digamos que no nos importa la relación entre la temperatura y el tiempo, sino que solo nos preocupamos por cómo los valores de `temp` se *distribuyen*. En otras palabras:
+
+1. ¿Cuáles son los valores más pequeños y más grandes?
+1. ¿Cuál es el valor central?
+1. ¿Cómo se extienden los valores?
+1. ¿Cuáles son los valores más frecuentes e infrecuentes?
+
+Una forma de visualizar esta *distribución* de esta variable única `temp` es representarlos a lo largo de una línea horizontal:
+
+```{r temp-on-line, echo=FALSE, fig.height=0.8, fig.cap="Gráfica de registros de temperatura por hora de NYC en 2013"}
+ggplot(data = weather, 
+       mapping = aes(x = temp, 
+                     y = factor("A"))) +
+  geom_point() +
+  theme(axis.ticks.y = element_blank(), 
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank())
+hist_title <- "Histograma de registros de temperatura por hora de NYC en 2013"
+```
+
+Esto nos da una idea general de cómo se distribuyen los valores de `temp`: podemos observar que las temperaturas varían desde alrededor de `r round(min(weather$temp, na.rm = TRUE), 0) `&deg;F hasta `r round(max(weather$temp, na.rm = TRUE), 0)` &deg;F. Además, parece que hay más temperaturas registradas entre 40°F y 60°F que fuera de este rango. Sin embargo, debido al alto grado de superposición en los puntos, es difícil tener una idea de exactamente cuántos valores se encuentran entre, por ejemplo, 50°F y 55°F.
+
+Lo que se suele construir normalmente en lugar de la gráfica anterior se conoce como *histograma*. Un histograma es un gráfico que visualiza la *distribución* de un valor numérico de la siguiente manera:
+
+1. Primero, dividimos el eje x en una serie de *bins* (segmentos), donde cada _bin_ representa un rango o intervalo de valores.
+1. Para cada grupo formado de esa forma, contamos el número de observaciones que caen en el rango correspondiente a ese grupo.
+1. Luego, para cada _bin_, dibujamos una barra cuya altura marca el recuento correspondiente.
+
+Vamos a profundizar en un ejemplo de histograma:
+
+```{r histogramexample, warning=FALSE, echo=FALSE, fig.cap="Histograma de ejemplo."}
+ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram(binwidth = 10, 
+                 boundary = 70, 
+                 color = "white")
+```
+
+Observe que hay tres segmentos de igual ancho entre 30°F y 60°F, por lo tanto, tenemos tres segmentos de ancho 10°F cada una: un intervalo para el rango de 30-40°F, otro intervalo para 40-50°F, y otro intervalo para el rango 50-60&deg;F. Ya que:
+
+1. El intervalo para el rango de 30-40°F tiene una altura de alrededor de 5000, este histograma nos indica que alrededor de 5000 de los registros de temperatura por hora se encuentran entre 30°F y 40°F.
+1. El intervalo para el rango de 40-50°F tiene una altura de alrededor de 4300, este histograma nos indica que alrededor de 4300 de los registros de temperatura por hora se encuentran entre 40°F y 50°F.
+1. El intervalo para el rango de 50-60°F tiene una altura de alrededor de 3500, este histograma nos indica que alrededor de 3500 de los registros de temperatura por hora se encuentran entre 50°F y 60°F.
+
+Los intervalos restantes tienen todos una interpretación similar.
+
+### Histogramas usando `geom_histogram()` {#geomhistogram}
+
+Ahora presentamos el código de `ggplot()` para representar nuestro primer histograma. A diferencia de los diagramas de dispersión y los gráficos lineales, ahora solo se asigna una variable en `aes()`: la única variable numérica `temp`. El parámetro estético `y` de un histograma se calcula automáticamente. Además, la capa de objeto geométrico ahora es un `geom_histogram()`.
+
+```{r weather-histogram, warning = TRUE, fig.cap="Histograma de temperaturas por hora en tres aeropuertos de Nueva York."}
+ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram()
+```
+
+Vamos a desglosar los mensajes que R nos ha enviado primero. El primer mensaje nos dice que el histograma se construyó utilizando `bins = 30`, en otras palabras, 30 intervalos con mismo ancho. Es el valor predeterminado, o por defecto. A menos que se especifique un número concreto, R elegirá 30 de forma predeterminada. Veremos en la siguiente sección cómo cambiar este número predeterminado de segmentos. El segundo mensaje nos dice algo similar al mensaje de advertencia que recibimos cuando ejecutamos el código para crear un diagrama de dispersión de los retrasos de salida y llegada de los vuelos de _Alaska Airlines_: se ha eliminado una fila con un valor perdido (`NA`) para la variable `temp`.
+
+Ahora vamos a explicar el histograma resultante. Podemos observar que los valores inferiores a 25°F y los valores superiores a 80°F son bastante raros. Sin embargo, debido a la gran cantidad de intervalos, es difícil tener una idea de qué rango de temperaturas cubre cada intervalo, todo es como una masa amorfa donde no se distinguen los límites entre intervalos. Así que vamos a agregar bordes verticales blancos que demarquen los intervalos, agregando un argumento `color = "white"` a `geom_histogram()`:
+
+
+```{r weather-histogram-2, warning=FALSE, message=FALSE, fig.cap="Histograma de temperaturas por hora en tres aeropuertos de Nueva York con bordes blancos."}
+ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram(color = "white")
+```
+
+Ahora podemos asociar mejor los rangos de temperaturas a cada uno de los intervalos. También podemos variar el color (interno) de las barras configurando el argumento `fill`. Ejecute `colors()` para ver todos los `r colors() %>% length()` colores posibles.
+
+
+```{r weather-histogram-3, warning=FALSE, message=FALSE, fig.cap="Histograma de temperaturas por hora en tres aeropuertos de Nueva York con bordes blancos."}
+ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram(color = "white", 
+                 fill = "steelblue")
+```
+
+
+### Ajustar el tamaño de los intervalos {#adjustbins}
+
+En las figuras anteriores podemos observar que en el rango de 50-75°F parece haber aproximadamente 8 intervalos. Por lo tanto, cada intervalo tiene un ancho de 25 dividido por 8, o aproximadamente 3.12°F, que no es un rango fácil de interpretar para trabajar. Ahora ajustemos el número de _bins_ en nuestro histograma con uno de dos métodos:
+
+1. Ajustar el número de _bins_ a través del argumento `bins` de `geom_histogram()`.
+1. Ajustar el ancho de los contenedores a través del argumento `binwidth` de `geom_histogram()`.
+
+Al usar el primer método, tenemos el poder de especificar en cuántos intervalos nos gustaría dividir el eje x. Como se mencionó en la sección anterior, el número predeterminado de intervalos es 30. Podemos anular esta opción predeterminada, con, por ejemplo, 40 _bins_, de la siguiente manera:
+
+```{r, warning=FALSE, message=FALSE, fig.cap= "Histograma con 40 bins"}
+ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram(bins = 40, 
+                 color = "white")
+```
+
+Usando el segundo método, en lugar de especificar el número de intervalos, especificamos el ancho de los mismos, utilizando el argumento `binwidth` en la capa `geom_histogram()`. Por ejemplo, establezcamos el ancho de cada bandeja en 10°F:
+
+```{r, warning=FALSE, message=FALSE, fig.cap="Histograma con binwidth 10."}
+ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram(binwidth = 10, 
+                 color = "white")
+```
+
+
+Todo este tipo de representaciones nos ayuda a contestar a preguntas como cuál es el centro de la distribución, si la distribución de una variable es simétrica con respecto a algún punto, o si está _sesgada_ hacia la izquierda o derecha, o si los datos están más o menos dispersos respecto del centro de la distribución.
+
+**Ejercicio**
+
+Para alguna de las variables continuas vistas en el _dataset_ `weather`, realizar un histograma, rellenando las barras de color rojo, con borde amarillo, y con 50 intervalos (_bins_).
+
+```{r hist1, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+
+---
+
+
+
+## Facetas (_facets_) {#facets}
+
+Antes de continuar con el 5NG, introduzcamos brevemente un nuevo concepto llamado *faceting*. El faceteado se utiliza cuando nos gustaría dividir una visualización particular de variables según el valor de otra variable. Esto crea copias múltiples del mismo tipo de gráfico con ejes x e y coincidentes, pero cuyo contenido será diferente.
+
+Por ejemplo, supongamos que estamos interesados en ver cómo el histograma de los registros de temperatura por hora en los tres aeropuertos de Nueva York difiere según el mes. La forma de realizarlo es dividir este histograma en los 12 meses posibles en un año dado. En otras palabras, dibujaremos histogramas de `temp` para cada mes (`month`). Hacemos esto agregando la capa `facet_wrap(~ month)`.
+
+
+```{r facethistogram, fig.cap="Histograma faceteado."}
+ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram(binwidth = 5, 
+                 color = "white") +
+  facet_wrap(~ month)
+```
+
+Hay que tener en cuenta el uso de la virgulilla `~` antes de `month` en `facet_wrap()`. Es obligatoria y recibiremos el error `Error en as.quoted(facets): el objeto 'month' no se encuentra` si no lo incluimos antes de `month`. 
+
+También podemos especificar el número de filas y columnas en la cuadrícula, usando los argumentos `nrow` y `ncol` dentro de `facet_wrap()`. Por ejemplo, digamos que nos gustaría que nuestra gráfica faceteada tuviera 4 filas en lugar de 3. Añadimos el argumento `nrow = 4` a `facet_wrap (~ month)`.
+
+
+```{r facethistogram2, fig.cap="Histograma faceteado con 4 filas en lugar de 3."}
+ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram(binwidth = 5, 
+                 color = "white") +
+  facet_wrap(~ month, 
+             nrow = 4)
+```
+
+Podemos observar que, como podríamos esperar en el hemisferio norte, las temperaturas tienden a ser más altas en los meses de verano, mientras que tienden a ser más bajas en el invierno.
+
+**Ejercicio**
+
+Construir una gráfica lineal para la temperatura por hora en el aeropuerto de Newark, dividiendo la gráfica en 12 _facets_, una por mes.
+
+```{r facets2, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+
+
+---
+
+
+
+## 5NG#4: Gráfico de cajas {#boxplots}
+
+Si bien los histogramas faceteados son una visualización que nos permite comparar distribuciones de una variable numérica según los valores de otra variable, otra visualización que logra este mismo objetivo son los *gráficos de cajas* (_boxplots_). Un gráfico de caja se construye a partir de la información proporcionada en el *resumen en cinco cantidades* de una variable numérica. Para mantener las cosas simples por ahora, solo consideraremos los registros por hora de la temperatura del mes de noviembre:
+
+
+```{r nov1, echo=FALSE, fig.cap="Temperaturas en noviembre.", fig.height=3.7}
+n_nov <- weather %>% 
+  filter(month == 11) %>% 
+  nrow()
+min_nov <- weather %>% 
+  filter(month == 11) %>% 
+  pull(temp) %>% 
+  min(na.rm = TRUE)
+max_nov <- weather %>% 
+  filter(month == 11) %>% 
+  pull(temp) %>% 
+  max(na.rm = TRUE)
+quartiles <- weather %>% 
+  filter(month == 11) %>% 
+  pull(temp) %>% 
+  quantile(prob=c(0.25, 0.5, 0.75))
+weather %>% 
+  filter(month %in% c(11)) %>% 
+  ggplot(mapping = aes(x = factor(month), y = temp)) +
+  #geom_boxplot() +
+  geom_jitter(width = 0.05, height = 0.5, alpha = 0.1) +
+  labs(x = "")
+```
+
+Estas `r n_nov` observaciones tienen el siguiente resumen de cinco números:
+
+1. Mínimo: `r min_nov`&deg;F
+1. Primer cuartil o percentil 25: `r quartiles[1]`&deg;F
+1. Mediana o segundo cuartil o percentil 50: `r quartiles[2]`&deg;F
+1. Tercer cuartil o percentil 75: `r quartiles[3]`&deg;F
+1. Máximo: `r max_nov`&deg;F
+
+Marquemos estos 5 valores con líneas horizontales discontinuas en la gráfica:
+
+```{r nov2, echo=FALSE, fig.cap="Temperaturas en noviembre.", fig.height=3.7}
+five_number <- data_frame(
+  temp = c(min_nov, quartiles, max_nov)
+)
+weather %>% 
+  filter(month %in% c(11)) %>% 
+  ggplot(mapping = aes(x = factor(month), y = temp)) +
+  #geom_boxplot() +
+  geom_hline(data = five_number, aes(yintercept=temp), linetype = "dashed") +
+  geom_jitter(width = 0.05, height = 0.5, alpha = 0.1) +
+  labs(x = "")
+```
+
+Añadamos el diagrama de caja debajo de estos puntos y las líneas horizontales discontinuas:
+
+```{r nov3, echo=FALSE, fig.cap="Temperaturas en noviembre.", fig.height=3.7}
+weather %>% 
+  filter(month %in% c(11)) %>% 
+  ggplot(mapping = aes(x = factor(month), y = temp)) +
+  geom_boxplot() +
+  geom_hline(data = five_number, aes(yintercept=temp), linetype = "dashed") +
+  geom_jitter(width = 0.05, height = 0.5, alpha = 0.1) +
+  labs(x = "")
+```
+
+La gráfica de cajas resume las `r weather %>% filter(month == 11) %>% nrow()` observciones, apuntando que:
+  
+1. El 25% de los puntos (alrededor de 534 observaciones) cae por debajo del borde inferior de la caja, que es el primer cuartil: `r quartiles[1] %>% round(3)`&deg;F. En otras palabras, el 25% de las observaciones fueron más frías que `r quartiles[1] %>% round(3)`&deg;F.
+1. El 25% de los puntos se ubican entre el borde inferior de la caja y la línea media sólida, que es la mediana: `r quartiles[2] %>% round(3)`&deg;F. En otras palabras, el 25% de las observaciones fueron entre `r quartiles[1] %>% round(3)`&deg;F y `r quartiles[2] %>% round(3)`&deg;F y, por tanto, el 50% de las observaciones fueron más frías que `r quartiles[2] %>% round(3)`&deg;F.
+1. El 25% de los puntos se ubican entre la línea media sólida y el borde superior de la caja, que es el tercer cuartil: `r quartiles[3] %>% round(3)`&deg;F. En otras palabras, el 25% de las observaciones fueron entre `r quartiles[2] %>% round(3)`&deg;F y `r quartiles[3] %>% round(3)`&deg;F y el 75% de las observaciones fueron más frías que `r quartiles[3] %>% round(3)`&deg;F.
+1. El 25% de los puntos caen por encima del borde superior de la caja. En otras palabras, el 25% de las observaciones fueron más cálidas que `r quartiles[3] %>% round(3)`&deg;F.
+1. El 50% central de los puntos caen dentro del _intervalo intercuartílico_, entre el primer y el tercer cuartil, que mide: `r quartiles[3] %>% round(3)` - `r quartiles[1] %>% round(3)` = `r (quartiles[3] - quartiles[1]) %>% round(3)`&deg;F.
+
+Por último, para mayor claridad, eliminemos los puntos pero mantengamos las líneas horizontales discontinuas:
+
+
+```{r nov4, echo=FALSE, fig.cap="Temperaturas en noviembre", fig.height=3.7}
+weather %>% 
+  filter(month %in% c(11)) %>% 
+  ggplot(mapping = aes(x = factor(month), y = temp)) +
+  geom_boxplot() +
+  geom_hline(data = five_number, aes(yintercept=temp), linetype = "dashed") +
+  # geom_jitter(width = 0.05, height = 0.5, alpha = 0.1) +
+  labs(x = "")
+```
+
+Ahora podemos ver mejor los *bigotes* (*whiskers*) del diagrama de caja. Se adhieren desde ambos extremos de la caja hasta las temperaturas mínimas y máximas observadas de `r min_nov`&deg;F y `r max_nov`&deg;F, respectivamente. Sin embargo, los _whiskers_ no siempre se extienden hasta los valores observados más pequeños y más grandes. De hecho, no se pueden extender más allá de 1.5 veces el rango intercuartílico desde cualquier extremo de la caja, en este caso 1.5 $\times$ `r (quartiles[3] - quartiles [1]) %>% round(3)`&deg;F = `r (1.5 * (quartiles[3] - quartiles[1])) %>% round(3)`&deg;F desde cualquiera de los extremos de la caja. Cualquier valor observado fuera de estos _whiskers_ se marca con puntos, y se les denomina *valores atípicos*, que veremos en la siguiente sección.
+
+### _Boxplots_ usando `geom_boxplot()` {#geomboxplot}
+
+Ahora creamos un diagrama de caja de las temperaturas por hora divididas en 12 meses como hicimos anteriormente con los histogramas faceteados. Hacemos esto asignando la variable `month` a la estética de la posición x, la variable` temp` a la estética de la posición y, y agregando una capa `geom_boxplot()`:
+
+
+```{r badbox, fig.cap="Especificación no válida para _boxplot_", fig.height=3.5}
+ggplot(data = weather, 
+       mapping = aes(x = month, 
+                     y = temp)) +
+  geom_boxplot()
+```
+
+```
+Warning messages:
+1: Continuous x aesthetic -- did you forget aes(group=...)? 
+2: Removed 1 rows containing non-finite values (stat_boxplot). 
+```
+
+Podemos ver que esta gráfica no proporciona información sobre la temperatura separada por mes. Los mensajes de advertencia nos dan una idea de por qué. El segundo mensaje de advertencia es idéntico al mensaje de advertencia cuando se representa un histograma de temperaturas por hora: uno de los valores se registró como _perdido_ (`NA`). Sin embargo, el primer mensaje de advertencia nos dice que tenemos una variable numérica o "continua" en la estética de la posición x. Sin embargo, los diagramas de caja requieren una variable categórica en el eje x.
+
+Podemos convertir la variable numérica `month` en una variable categórica, usando la función` factor()`. Entonces, después de aplicar `factor(month)`, el mes pasa de tener valores numéricos 1, 2, ..., 12 a tener etiquetas "1", "2", ..., "12".
+
+```{r monthtempbox, fig.cap="Boxplot de temperatura por mes", fig.height=3.7}
+ggplot(data = weather, 
+       mapping = aes(x = factor(month), 
+                     y = temp)) +
+  geom_boxplot()
+```
+
+Esta figura muestra 12 diagramas de cajas separados, con las características que vimos anteriormente, enfocadas solo en noviembre:
+
+* Las partes de las cajas de esta visualización representan el cuartil 1º, el 2º (la mediana) y el 3º.
+* La altura de cada caja, es decir, el valor del cuartil 3º menos el valor del cuartil 1º, es el *rango intercuartílico*. Es una medida de la dispersión del 50% central de los valores, con cajas más largas indicando una mayor variabilidad.
+* Los _whiskers_ se extienden desde la parte inferior y superior de las cajas y representan puntos menores que el percentil 25 y mayores que el percentil 75, respectivamente. Están configurados para extenderse a no más distancia de $1.5 \times IQR$ unidades a partir de cada extremo de las cajas. La longitud de estos _whiskers_ muestra cómo varían los datos fuera del 50% central de los valores, y _whiskers_  más largos indican una mayor variabilidad.
+* Los puntos que representan valores que caen fuera de los _whiskers_ se denominan *valores atípicos*. Estos pueden considerarse como valores anómalos en la distribución.
+
+Es importante tener en cuenta que la definición de un valor atípico es algo arbitraria y no algo absoluto. En este caso, se definen por la longitud de los _whiskers_, que no miden más de $1.5 \times IQR$ unidades. Al observar esta gráfica, podemos ver, como se esperaba, que los meses de verano (de 6 a 8) tienen temperaturas medias más altas, como lo demuestran las líneas continuas más altas en el centro de las cajas. Podemos comparar fácilmente las temperaturas a lo largo de los meses dibujando líneas horizontales imaginarias en la gráfica. Además, la altura de los 12 recuadros según lo cuantificado por los rangos intercuartílicos también es informativa: nos informan sobre la variabilidad o la dispersión de las temperaturas registradas en un mes determinado.
+
+**Ejercicio**
+
+Realizar un _boxplot_ análogo al anterior, usando otra variable continua del _dataframe_ `weather` en lugar de `temp`.
+
+```{r boxplot1, exercise = TRUE, eval.exercise = TRUE}
+
+
+
+```
+
+---
+
+
+
+## 5NG#5: Gráfico de barras {#geombar}
+
+Tanto los histogramas como los diagramas de caja son herramientas para visualizar la distribución de las variables numéricas. Otra tarea común es visualizar la distribución de una variable categórica. Esta es una tarea más simple, ya que simplemente estamos contando diferentes categorías, también conocidas como *niveles*, de una variable categórica. A menudo, la mejor manera de visualizar estos recuentos diferentes, también conocidos como *frecuencias*, es con un gráfico de barras (_barplot_). 
+
+### _Barplots_ usando `geom_bar()`
+
+Volvamos ahora al _dataframe_ `flights` en el paquete `nycflights13` y visualicemos la distribución de la variable categórica `carrier` (aerolínea). En otras palabras, visualicemos la cantidad de vuelos nacionales de los tres aeropuertos de la ciudad de Nueva York que realizó cada compañía aérea en 2013. Debemos usar `geom_bar()` para crear una gráfica de barras. Al igual que en un `geom_histogram()`, solo hay una variable en el mapeo estético `aes()`: la variable `carrier` se asigna a la posición `x`.
+
+```{r flightsbar, fig.cap='Número de vuelos que salen de Nueva York en 2013 por aerolínea usando geom_bar.', fig.height=2.5}
+ggplot(data = flights,
+       mapping = aes(x = carrier)) +
+  geom_bar()
+```
+
+Observemos que United Air Lines (UA), JetBlue Airways (B6) y ExpressJet Airlines (EV) tuvieron la mayoría de los vuelos que salen de la ciudad de Nueva York en 2013.
+
+
+### Evitar gráficos circulares (o de tarta)
+
+Desafortunadamente, uno de los gráficos más comunes que se ven hoy en día para los datos categóricos es el gráfico circular. Si bien pueden parecer bastante inofensivos, en realidad presentan un problema porque los humanos no pueden juzgar bien los ángulos. Sobreestimamos los ángulos superiores a 90 grados y subestimamos los ángulos inferiores a 90 grados. En otras palabras, es difícil para nosotros determinar el tamaño relativo de una porción del pastel en comparación con otra.
+
+Examinemos los mismos datos utilizados en nuestra gráfica de barras anterior del número de vuelos que salen de la Ciudad de Nueva York, pero esta vez utilizaremos un gráfico circular.
+
+
+```{r carrierpie, echo=FALSE, fig.cap="El temido gráfico circular", fig.height=5}
+ggplot(flights, mapping = aes(x = factor(1), fill = carrier)) +
+  geom_bar(width = 1) +
+  coord_polar(theta = "y") +
+  theme(axis.title.x = element_blank(), 
+    axis.title.y = element_blank(),
+    axis.ticks = element_blank(),
+    axis.text.y = element_blank(),
+    axis.text.x = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank()) +
+  guides(fill = guide_legend(keywidth = 0.8, keyheight = 0.8))
+```
+
+Intenta responder las siguientes preguntas:
+
+* ¿Cuánto más grande es la porción del pastel para ExpressJet Airlines (`EV`) en comparación con US Airways (` US`)?,
+* ¿Cuál es la tercera aerolínea más grande en términos de vuelos que salen?, y
+* ¿Cuántas compañías aéreas tienen menos vuelos que United Airlines (`UA`)?
+
+Si bien es bastante difícil responder estas preguntas cuando se mira el gráfico circular, podemos responder estas preguntas mucho más fácilmente utilizando el gráfico de barras. Esto es cierto ya que los gráficos de barras presentan la información de manera tal que las comparaciones entre categorías se pueden hacer con líneas horizontales únicas, mientras que los gráficos circulares presentan la información de manera tal que las comparaciones entre categorías se deben hacer comparando ángulos.
+
+
+
+---
+
+
+
+## Tabla de resumen
+
+Recapitulemos los cinco gráficos con nombre (5NG) en la tabla siguiente, resumiendo sus diferencias. Usando estos 5NG, podrá visualizar las distribuciones y relaciones de las variables contenidas en una amplia gama de conjuntos de datos. Éste será aún más el caso a medida que comencemos a asignar más variables a más opciones de atributos estéticos `aes` de cada objeto geométrico, desbloqueando aún más la increíble potencia del paquete `ggplot2`.
+
+
+|Nombre del gráfico |Uso                                                                     |Objeto geométrico  |Notas                                                                                                                              |
+|:------------------|:---------------------------------------------------------------------------|:------------------|:----------------------------------------------------------------------------------------------------------------------------------|
+|Dispersión         |Relación entre dos variables numéricas                                      |`geom_point()`     |                                                                                                                                   |
+|Lineal             |Relación entre dos variables numéricas                                      |`geom_line()`      |Se usa cuando hay un orden secuencial en la variable x (tiempo)                                                                    |
+|Histograma         |Distribución de una variable numérica                                       |`geom_histogram()` |Los histogramas faceteados muestran la distribución de una variable numérica dividida según los valores de otra variable categórica |
+|Cajas              |Distribución de una variable numérica dividida según una variable categórica |`geom_boxplot()`   |                                                                                                                                   |
+|Barras             |Distribución de una variable categórica                                     |`geom_bar()`       |                                                                                                                                   |

@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+
+
+<meta name="progressive" content="false" />
+<meta name="allow-skip" content="false" />
+
+<title>Tutorial de Visualización de Datos</title>
+
+
+<!-- highlightjs -->
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+  pre:not([class]) {
+    background-color: white;
+  }
+</style>
+<script type="text/javascript">
+if (window.hljs && document.readyState && document.readyState === "complete") {
+   window.setTimeout(function() {
+      hljs.initHighlighting();
+   }, 0);
+}
+</script>
+
+
+
+</head>
+
+<body>
+
+
+
+<div class="pageContent band">
+<div class="bandContent page">
+
+<div class="topics">
+
+<div id="section-introduccion-a-la-visualizacion-de-datos" class="section level2">
+<h2>Introducción a la Visualización de Datos</h2>
+<p>Una de las herramientas más importantes que debemos tener en nuestra caja de herramientas de <em>Ciencia de Datos</em> es la visualización. Al visualizar nuestros datos, podemos conseguir una comprensión de gran valor que no podríamos obtener simplemente mirando a los datos brutos en formato de <em>hoja de cálculo</em>.</p>
+<p>Usaremos el paquete <code>ggplot2</code>, que proporciona muchas formas de personalizar los gráficos, y que se fundamenta en la teoría denominada la <em>Gramática de los Gráficos</em>.</p>
+<p>En su nivel más básico, una gráfica nos proporciona una forma cómoda de echar un vistazo a cómo las variables cuantitativas se relacionan unas con otras en términos de su <em>centro</em> (donde los valores tienden a estar localizados) y su <em>dispersión</em> (cuánto varían los valores alrededor de su centro).</p>
+<p>Asimismo, las gráficas también nos ayudan a identificar patrones y valores anómalos en nuestros datos. Una extensión de esta idea es poder comparar la <em>distribución</em> de una variable cuantitativa (la <em>forma</em> que toma el conjunto de valores de dicha variable) según los valores de una variable categórica diferente.</p>
+<p>Se debería diseñar cada gráfica de forma que se enfaticen los hallazgos que se quiere transmitir a la audiencia.</p>
+</div>
+<div id="section-paquetes-necesarios" class="section level2">
+<h2>Paquetes necesarios</h2>
+<p>Necesitamos cargar todos los paquetes necesarios para este tutorial (los deberíamos tener todos ya instalados de unidades anteriores).</p>
+<pre class="r"><code>library(nycflights13)
+library(ggplot2)
+library(dplyr)</code></pre>
+</div>
+<div id="section-grammarofgraphics" class="section level2">
+<h2>La Gramática de los Gráficos</h2>
+<p>Comenzaremos con una breve discusión acerca del marco teórico para la visualización de datos conocido como “La gramática de los gráficos”, que sirve de base para el paquete <code>ggplot2</code>. Podemos pensar en cómo construimos frases en español, combinando diferentes elementos, como sustantivos, verbos, partículas, sujetos, objetos, etc. Sin embargo, no podemos combinar estos elementos en ningún orden arbitrario, debemos hacerlo siguiendo un conjunto de reglas conocidas como <em>gramática lingüística</em>. De manera similar a una gramática lingüística, “La gramática de los gráficos” define un conjunto de reglas para la construcción de <em>gráficos estadísticos</em> mediante la combinación de diferentes tipos de <em>capas</em>.</p>
+<div id="section-componentes-de-la-gramatica" class="section level3">
+<h3>Componentes de la gramática</h3>
+<p>En resumen, la gramática nos dice que:</p>
+<blockquote>
+<p>Un gráfico estadístico es un ‘mapeo’ de las variables de datos (<code>data</code>) a los atributos estéticos (<code>aes</code>) de ciertos objetos geométricos (<code>geom</code>).</p>
+</blockquote>
+<p>Específicamente, podemos dividir un gráfico en los siguientes tres componentes esenciales:</p>
+<ol style="list-style-type: decimal">
+<li><code>data</code>: El conjunto de datos compuesto por variables que mapeamos.</li>
+<li><code>geom</code>: El objeto geométrico en cuestión. Esto se refiere al tipo de objeto que podemos observar en una gráfica. Por ejemplo: puntos, líneas y barras.</li>
+<li><code>aes</code>: Atributos estéticos del objeto geométrico. Por ejemplo, posición en coordenadas x/y, color, forma y tamaño. Cada atributo estético asignado se puede mapear a una variable en nuestro conjunto de datos.</li>
+</ol>
+</div>
+<div id="section-gapminder" class="section level3">
+<h3>Los datos de gapminder</h3>
+<p>En febrero de 2006, un estadístico llamado Hans Rosling dio una charla en TED titulada <a href="https://www.ted.com/talks/hans_rosling_shows_the_best_stats_you_ve_ever_seen">“Las mejores estadísticas que jamás hayas visto”</a> donde presentó economía mundial, salud y datos de desarrollo del sitio web <a href="http://www.gapminder.org/tools/#_locale_id=en;&amp;chart-type=bubbles">gapminder.org</a>. Por ejemplo, para los 142 países incluidos a partir de 2007, consideremos solo los primeros 6 países cuando están listados alfabéticamente:</p>
+<table class="table" style="font-size: 16px; margin-left: auto; margin-right: auto;">
+<caption style="font-size: initial !important;">
+Datos Gapminder 2007: 6 primeros países de 142
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+Country
+</th>
+<th style="text-align:left;">
+Continent
+</th>
+<th style="text-align:right;">
+Life Expectancy
+</th>
+<th style="text-align:right;">
+Population
+</th>
+<th style="text-align:right;">
+GDP per Capita
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+Afghanistan
+</td>
+<td style="text-align:left;">
+Asia
+</td>
+<td style="text-align:right;">
+43.83
+</td>
+<td style="text-align:right;">
+31889923
+</td>
+<td style="text-align:right;">
+974.58
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Albania
+</td>
+<td style="text-align:left;">
+Europe
+</td>
+<td style="text-align:right;">
+76.42
+</td>
+<td style="text-align:right;">
+3600523
+</td>
+<td style="text-align:right;">
+5937.03
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Algeria
+</td>
+<td style="text-align:left;">
+Africa
+</td>
+<td style="text-align:right;">
+72.30
+</td>
+<td style="text-align:right;">
+33333216
+</td>
+<td style="text-align:right;">
+6223.37
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Angola
+</td>
+<td style="text-align:left;">
+Africa
+</td>
+<td style="text-align:right;">
+42.73
+</td>
+<td style="text-align:right;">
+12420476
+</td>
+<td style="text-align:right;">
+4797.23
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Argentina
+</td>
+<td style="text-align:left;">
+Americas
+</td>
+<td style="text-align:right;">
+75.32
+</td>
+<td style="text-align:right;">
+40301927
+</td>
+<td style="text-align:right;">
+12779.38
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Australia
+</td>
+<td style="text-align:left;">
+Oceania
+</td>
+<td style="text-align:right;">
+81.23
+</td>
+<td style="text-align:right;">
+20434176
+</td>
+<td style="text-align:right;">
+34435.37
+</td>
+</tr>
+</tbody>
+</table>
+<p>Cada fila en esta tabla corresponde a un país en 2007. Para cada fila, tenemos 5 columnas:</p>
+<ol style="list-style-type: decimal">
+<li><strong>Country</strong>: Nombre del país.</li>
+<li><strong>Continent</strong>: De cuál de los cinco continentes forma parte el país. Debemos tener en cuenta que “América” incluye países en América del Norte y del Sur y que se excluye la Antártida.</li>
+<li><strong>Life Expectancy</strong>: Esperanza de vida en años.</li>
+<li><strong>Population</strong>: Número de personas viviendo en el país.</li>
+<li><strong>GDP per Capita</strong>: Producto interior bruto <em>per capita</em> (en dólares USA).</li>
+</ol>
+<p>Ahora considere la figura siguiente, que representa estos datos para todos los 142 países.</p>
+<!--
+Note that R will deal with large numbers using scientific notation.  So in the legend for "Population", 1.25e+09 is 1.25 $\times$ 10^9^ = 1,250,000,000 = 1.25 billion. 
+-->
+<pre class="r"><code>ggplot(data = gapminder_2007, 
+       mapping = aes(x = `GDP per Capita`, 
+                     y = `Life Expectancy`,
+                     size = Population, 
+                     col = Continent)) +
+  geom_point() +
+  labs(x = &quot;PIB per capita&quot;, y = &quot;Esperanza de vida&quot;)</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/gapminder-1.png" alt="Esperanza de vida con respecto al PIB per capita en 2007" width="624" />
+<p class="caption">
+Esperanza de vida con respecto al PIB per capita en 2007
+</p>
+</div>
+<p>Veamos esta gráfica a través de la gramática de los gráficos:</p>
+<ol style="list-style-type: decimal">
+<li>La variable <strong>GDP per Capita</strong> se mapea al parámetro estético (<code>aes</code>) posición-<code>x</code> de los puntos.</li>
+<li>La variable <strong>Life Expectancy</strong> se mapea al parámetro estético posición-<code>y</code> de los puntos.</li>
+<li>La variable <strong>Population</strong> se mapea al parámetro estético del tamaño (<code>size</code>) de los puntos.</li>
+<li>La variable <strong>Continent</strong> se mapea al parámetro <code>color</code> de los puntos.</li>
+</ol>
+<p>Veremos en breve que <code>data</code> se corresponde con el <em>dataframe</em> particular donde se almacenan nuestros datos y una <em>variable de datos</em> se corresponde con una columna particular en el <em>dataframe</em>. Además, el tipo de objeto geométrico (<code>geom</code>) considerado en esta gráfica son puntos. Sin embargo, las gráficas no se limitan a puntos, habrá líneas, cajas…</p>
+<p>Resumamos los tres componentes esenciales de la gramática:</p>
+<table class="table" style="font-size: 16px; margin-left: auto; margin-right: auto;">
+<caption style="font-size: initial !important;">
+Resumen de la gramática de gráficos para la gráfica anterior
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+variable
+</th>
+<th style="text-align:left;">
+aes
+</th>
+<th style="text-align:left;">
+geom
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+GDP per Capita
+</td>
+<td style="text-align:left;">
+x
+</td>
+<td style="text-align:left;">
+point
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Life Expectancy
+</td>
+<td style="text-align:left;">
+y
+</td>
+<td style="text-align:left;">
+point
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Population
+</td>
+<td style="text-align:left;">
+size
+</td>
+<td style="text-align:left;">
+point
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+Continent
+</td>
+<td style="text-align:left;">
+color
+</td>
+<td style="text-align:left;">
+point
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="section-otros-componentes" class="section level3">
+<h3>Otros componentes</h3>
+<p>Hay otros componentes de la Gramática de Gráficos que también podemos controlar. A medida que empecemos a profundizar en la gramática de los gráficos, empezaremos a encontrar estos temas con más frecuencia. Sin embargo, en este tutorial mantendremos las cosas simples y solo trabajaremos con los dos componentes adicionales que se enumeran a continuación:</p>
+<ul>
+<li><code>facet</code>ear es dividir una gráfica en múltiples pequeñas gráficas correspondientes a los niveles de otra variable.</li>
+<li>Ajustes de la <code>position</code> de los gráficos de barras.</li>
+</ul>
+<p>Existen otros componentes más complejos, como <code>scales</code> y sistemas de <code>coord</code>enadas. En términos generales, la gramática de gráficos permite un alto grado de personalización de los gráficos y también un marco coherente para actualizarlos y modificarlos fácilmente.</p>
+</div>
+<div id="section-el-paquete-ggplot2" class="section level3">
+<h3>El paquete <code>ggplot2</code></h3>
+<p>En este tutorial, usaremos el paquete <code>ggplot2</code> para la visualización de datos, que es una implementación de la Gramática de Gráficos para R. Los diversos componentes de la gramática de gráficos se especifican en la función <code>ggplot()</code> incluida en el paquete <code>ggplot2</code>, que espera, como mínimo, los siguientes argumentos (es decir, entradas):</p>
+<ul>
+<li>El <em>dataframe</em> donde existen las variables: el argumento <code>data</code>.</li>
+<li>El mapeo de las variables a los atributos estéticos: el argumento <code>mapping</code> que especifica los atributos estéticos (<code>aes</code>) involucrados.</li>
+</ul>
+<p>Después de que hayamos especificado estos componentes, agregamos <em>capas</em> al gráfico usando el signo <code>+</code>. La capa más esencial para agregar a una gráfica es la capa que especifica qué tipo de objeto geométrico (<code>geom</code>) queremos que incluya la gráfica: puntos, líneas, barras y otros. Otras capas que podemos agregar a una gráfica incluyen capas que especifican el título de la gráfica, las etiquetas de los ejes, los temas visuales de las gráficas y las <em>facets</em>.</p>
+<p>Pongamos ahora en práctica la teoría de la gramática de los gráficos.</p>
+<hr />
+</div>
+</div>
+<div id="section-FiveNG" class="section level2">
+<h2>Los 5 Gráficos con Nombre (Five Named Graphs) - Los 5NG</h2>
+<p>Para mantener las cosas simples, solo aprenderemos cinco tipos diferentes de gráficos en este tutorial, cada uno con un nombre común. Llamamos a estos “cinco gráficos con nombre” los <strong>5NG</strong>:</p>
+<ol style="list-style-type: decimal">
+<li>Gráficos de dispersión de puntos: <em>scatterplots</em>.</li>
+<li>Gráficos de líneas: <em>linegraphs</em>.</li>
+<li>Gráficos de cajas: <em>boxplots</em>.</li>
+<li>Histogramas: <em>histograms</em>.</li>
+<li>Gráficos de barras: <em>barplots</em>.</li>
+</ol>
+<p>Discutiremos algunas variaciones de estos gráficos, pero con este repertorio básico de gráficos en nuestra caja de herramientas, podremos visualizar una amplia gama de diferentes tipos de variables. Debemos tener en cuenta que ciertas gráficas solo son apropiadas para variables categóricas mientras que otras solo son apropiadas para variables cuantitativas. A medida que avancemos, deberemos preguntarnos qué gráfica tiene sentido en un determinado problema o conjunto de datos.</p>
+<hr />
+</div>
+<div id="section-scatterplots" class="section level2">
+<h2>5NG#1: Gráfico de dispersión</h2>
+<p>Los más simples de los 5NG son los <em>diagramas de dispersión</em>, también llamados diagramas bivariados. Te permiten visualizar la relación entre dos variables numéricas. Visualizaremos la relación entre las siguientes dos variables numéricas en el <em>dataframe</em> <code>flights</code> incluido en el paquete <code>nycflights13</code>:</p>
+<ol style="list-style-type: decimal">
+<li><code>dep_delay</code>: retraso en la salida, en el eje horizontal <code>x</code></li>
+<li><code>arr_delay</code>: retraso en la llegada, en el eje vertical <code>y</code></li>
+</ol>
+<p>para los vuelos de <em>Alaska Airlines</em> que salen de NYC en 2013. Esto requiere reducir los datos desde los 336,776 vuelos que salieron de NYC en 2013, a solo los 714 vuelos de <em>Alaska Airlines</em> que salieron de NYC en 2013.</p>
+<p>Lo que esto significa computacionalmente es: tomaremos el <em>dataframe</em> <code>flights</code>, extraeremos solo las 714 filas correspondientes a los vuelos de <em>Alaska Airlines</em>, y guardaremos esto en un nuevo <em>dataframe</em> llamado <code>alaska_flights</code>. Ejecutemos el siguiente código para hacer esto:</p>
+<pre class="r"><code>alaska_flights &lt;- flights %&gt;% 
+  filter(carrier == &quot;AS&quot;)</code></pre>
+<div id="section-geompoint" class="section level3">
+<h3>Diagramas de dispersión usando <code>geom_point</code></h3>
+<p>Ahora repasemos el código que creará el diagrama de dispersión deseado, teniendo en cuenta nuestra discusión sobre la gramática de gráficos en la sección anterior. Usaremos la función <code>ggplot()</code> incluida en el paquete <code>ggplot2</code>.</p>
+<pre class="r"><code>ggplot(data = alaska_flights, mapping = aes(x = dep_delay, y = arr_delay)) + 
+  geom_point()</code></pre>
+<p>Vamos a desglosar este código pieza a pieza:</p>
+<ul>
+<li>Dentro de la función <code>ggplot()</code>, especificamos dos de los componentes de la gramática de gráficos como argumentos:
+<ol style="list-style-type: decimal">
+<li>El <em>dataframe</em> <code>alaska_flights</code> como variable <code>data</code>, al hacer <code>data = alaska_flights</code>.</li>
+<li>El mapeo (<code>mapping</code>) estético (<code>aes</code>), haciendo <code>aes(x = dep_delay, y = arr_delay)</code>. Específicamente:
+<ul>
+<li>la variable <code>dep_delay</code> se mapea a la posición <code>x</code></li>
+<li>la variable <code>arr_delay</code> se mapea a la posición <code>y</code></li>
+</ul></li>
+</ol></li>
+<li>Añadimos una capa a la llamada a la función <code>ggplot()</code> usando el signo <code>+</code>. La capa en cuestión especifica el tercer componente de la gramática: el objeto geométrico (<code>geom</code>). En este caso, el objeto geométrico son puntos, establecidos al especificar <code>geom_point()</code>.</li>
+</ul>
+<p>Después de ejecutar el código anterior, notará dos salidas: un mensaje de advertencia y el gráfico que se muestra en la figura siguiente.</p>
+<pre><code>## Warning: Removed 5 rows containing missing values (geom_point).</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/noalpha-1.png" alt="Retrasos de llegada frente a retrasos de salida para vuelos de Alaska Airlines desde Nueva York en 2013" width="624" />
+<p class="caption">
+Retrasos de llegada frente a retrasos de salida para vuelos de Alaska Airlines desde Nueva York en 2013
+</p>
+</div>
+<p>Después de ejecutar el código anterior, R devuelve un mensaje de advertencia que nos alerta sobre el hecho de que se ignoraron 5 filas debido a que faltaban. Para 5 filas, el valor de <code>dep_delay</code> o<code>arr_delay</code>, o ambos, estban perdidos (registrados en R como <code>NA</code>), y por lo tanto, estas filas se ignoraron en nuestra gráfica. Al centrar nuestra atención en el diagrama de dispersión resultante, vemos que existe una relación positiva entre <code>dep_delay</code> y<code>arr_delay</code>: a medida que aumentan los retrasos de salida, los retrasos de llegada también tienden a aumentar. También notamos la gran masa de puntos agrupados cerca del origen (0, 0).</p>
+<p>Antes de continuar, consideremos algunas notas más sobre las <em>capas</em> en el código anterior que generó el diagrama de dispersión:</p>
+<ul>
+<li>Debemos tener en cuenta que el signo <code>+</code> aparece al final de una línea, y no al principio. Obtendremos un error en R si lo ponemos al principio.</li>
+<li>Al añadir capas a una gráfica, se recomienda empezar una nueva línea después del <code>+</code> para que el código de cada capa esté en una nueva línea. A medida que agregamos más y más capas a las gráficas, veremos que esto mejorará en gran medida la legibilidad del código.</li>
+<li>Para resaltar la importancia de agregar capas, en particular la capa que especifica el objeto geométrico (<code>geom</code>), consideremos la figura siguiente, donde no se añaden capas. ¡Una gráfica nada útil!</li>
+</ul>
+<pre class="r"><code>ggplot(data = alaska_flights, mapping = aes(x = dep_delay, y = arr_delay))</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/nolayers-1.png" alt="Gráfica sin capas" width="624" />
+<p class="caption">
+Gráfica sin capas
+</p>
+</div>
+<p><strong>Ejercicio</strong></p>
+<p>Crea un nuevo diagrama de dispersión utilizando diferentes variables en el marco de datos <code>alaska_flights</code> modificando el ejemplo anterior.</p>
+<div class="tutorial-exercise" data-label="scatter" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+</div>
+<div id="section-overplotting" class="section level3">
+<h3>Over-plotting</h3>
+<p>La gran masa de puntos cerca de (0, 0) en una Figura anterior puede causar cierta confusión, ya que es difícil determinar el número real de puntos que se dibujan. Éste es el resultado de un fenómeno llamado <em>overplotting</em>. Como puede suponerse, esto corresponde a valores que se representan uno encima del otro, una y otra vez. A menudo es difícil saber cuántos valores se representan de esta manera cuando observamos un diagrama de dispersión básico como el que tenemos aquí. Hay dos métodos para abordar el problema del <em>overplotting</em>:</p>
+<ol style="list-style-type: decimal">
+<li>Ajustando la transparencia de los puntos.</li>
+<li>Agregando un pequeño “jitter” (empujoncillo) aleatorio a cada uno de los puntos.</li>
+</ol>
+<p><strong>Método 1: Cambiar la transparencia</strong></p>
+<p>La primera forma de abordar el exceso de representación es cambiando la transparencia de los puntos usando el argumento <code>alpha</code> en <code>geom_point()</code>. Por defecto, este valor se establece en <code>1</code>. Podemos cambiar este valor a cualquier número entre <code>0</code> y <code>1</code>, donde <code>0</code> establece que los puntos sean 100% transparentes y <code>1</code> establece que los puntos sean 100% opacos. El siguiente código es idéntico al usado anteriormente para hacer un <em>scatterplot</em>, pero con <code>alpha = 0.2</code> agregado a la llamada a <code>geom_point()</code>:</p>
+<pre class="r"><code>ggplot(data = alaska_flights, 
+       mapping = aes(x = dep_delay, 
+                     y = arr_delay)) + 
+  geom_point(alpha = 0.2)</code></pre>
+<pre><code>## Warning: Removed 5 rows containing missing values (geom_point).</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/alpha-1.png" alt="Scatterplot de los retrasos con alpha = 0.2" width="624" />
+<p class="caption">
+Scatterplot de los retrasos con alpha = 0.2
+</p>
+</div>
+<p>La característica clave a tener en cuenta es que la transparencia de los puntos es acumulativa: las áreas con un alto grado de <em>overplotting</em> son más oscuras, mientras que las áreas con un grado más bajo son menos oscuras. HAy que tener en cuenta además que no hay ningún <code>aes()</code> que rodee a <code>alpha = 0.2</code>. Esto se debe a que no estamos asignando una variable a un atributo estético, sino simplemente cambiando la configuración predeterminada de <code>alpha</code>, que se aplica a nivel global en la capa.</p>
+<p><strong>Método 2: Añadir <em>jittering</em> a los puntos</strong></p>
+<p>La segunda forma de abordar el exceso de puntos es añadir <em>jittering</em> a todos los puntos, en otras palabras, dar a cada punto un pequeño empujón en una dirección aleatoria.</p>
+<p>En lugar de usar <code>geom_point()</code>, usamos <code>geom_jitter()</code>. Para especificar cuánto <em>jitter</em> agregar, ajustamos los argumentos <code>width</code> y <code>height</code>. Esto corresponde con la fuerza con la que <em>se sacude</em> la gráfica, medida en las unidades correspondientes a las variables horizontales y verticales (en este caso, minutos).</p>
+<pre class="r"><code>ggplot(data = alaska_flights, 
+       mapping = aes(x = dep_delay, 
+                     y = arr_delay)) + 
+  geom_jitter(width = 30, 
+              height = 30)</code></pre>
+<pre><code>## Warning: Removed 5 rows containing missing values (geom_point).</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/jitter-1.png" alt="Gráfica de dispersión de los retrasos, con _jitter_" width="624" />
+<p class="caption">
+Gráfica de dispersión de los retrasos, con <em>jitter</em>
+</p>
+</div>
+<p>Podemos observar que el código anterior es igual al usado para hacer el <em>scatterplot</em> original, pero cambiando <code>geom_point()</code> por <code>geom_jitter()</code>.</p>
+<p>El gráfico resultante nos ayuda un poco a tener una idea del <em>overplotting</em>, pero con un conjunto de datos relativamente grande como este (714 vuelos), se puede razonar que cambiar la transparencia de los puntos modificando <code>alpha</code> es más efectivo. En cuanto a la cantidad de <em>jitter</em> que se debe agregar usando los argumentos <code>width</code> y<code>height</code>, es importante agregar solo jitter suficiente para romper cualquier superposición en los puntos, pero no tanto que alteremos completamente el patrón general de los puntos.</p>
+<p><strong>Ejercicio</strong></p>
+<p>Modificar las llamadas realizadas en el ejercicio anterior (sobre <em>scatterplots</em>) para incluir un valor de <code>alpha = 0.3</code> y, por otro lado, añadir <em>jitter</em>, usando valores apropiados para <code>width</code> y <code>height</code>.</p>
+<div class="tutorial-exercise" data-label="scatter2" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<p><strong>Ejercicio</strong></p>
+<p>Modificar las llamada realizadas en el ejercicio anterior para cambiar el color (<code>color</code>) y el tamaño (<code>size</code>) de los puntos.</p>
+<div class="tutorial-exercise" data-label="name" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<hr />
+</div>
+</div>
+<div id="section-linegraphs" class="section level2">
+<h2>5NG#2: Gráfico de líneas</h2>
+<p>El siguiente de los cinco gráficos con nombre es el gráfico de líneas o lineales, que muestran la relación entre dos variables numéricas cuando la variable en el eje x, también llamada variable <em>explicativa</em>, es de naturaleza secuencial. En otras palabras, hay un orden inherente a la variable. El ejemplo más común es el que incluye cierta noción de <em>tiempo</em> en el eje x: horas, días, semanas, años, etc. Como el tiempo es secuencial, conectamos observaciones consecutivas de la variable en el eje y con una línea. A este tipo de gráficas en los que el eje X representa una dimensión temporal también se llaman gráficos de <em>series temporales</em>. Estos gráficos deben evitarse cuando no hay un ordenamiento secuencial claro para la variable en el eje x. Ilustremos este tipo de gráficas utilizando otro conjunto de datos en el paquete <code>nycflights13</code>: el <em>dataframe</em> <code>weather</code>.</p>
+<pre class="r"><code>weather %&gt;% 
+  head() %&gt;% 
+  kable(
+    digits = 2,
+    caption = &quot;Datos _weather_&quot;, 
+    booktabs = TRUE
+  ) %&gt;% 
+  kable_styling(font_size = ifelse(knitr:::is_latex_output(), 10, 16),
+                latex_options = c(&quot;HOLD_position&quot;))</code></pre>
+<table class="table" style="font-size: 16px; margin-left: auto; margin-right: auto;">
+<caption style="font-size: initial !important;">
+Datos <em>weather</em>
+</caption>
+<thead>
+<tr>
+<th style="text-align:left;">
+origin
+</th>
+<th style="text-align:right;">
+year
+</th>
+<th style="text-align:right;">
+month
+</th>
+<th style="text-align:right;">
+day
+</th>
+<th style="text-align:right;">
+hour
+</th>
+<th style="text-align:right;">
+temp
+</th>
+<th style="text-align:right;">
+dewp
+</th>
+<th style="text-align:right;">
+humid
+</th>
+<th style="text-align:right;">
+wind_dir
+</th>
+<th style="text-align:right;">
+wind_speed
+</th>
+<th style="text-align:right;">
+wind_gust
+</th>
+<th style="text-align:right;">
+precip
+</th>
+<th style="text-align:right;">
+pressure
+</th>
+<th style="text-align:right;">
+visib
+</th>
+<th style="text-align:left;">
+time_hour
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:left;">
+EWR
+</td>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+39.02
+</td>
+<td style="text-align:right;">
+26.06
+</td>
+<td style="text-align:right;">
+59.37
+</td>
+<td style="text-align:right;">
+270
+</td>
+<td style="text-align:right;">
+10.36
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1012.0
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:left;">
+2013-01-01 01:00:00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+EWR
+</td>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+2
+</td>
+<td style="text-align:right;">
+39.02
+</td>
+<td style="text-align:right;">
+26.96
+</td>
+<td style="text-align:right;">
+61.63
+</td>
+<td style="text-align:right;">
+250
+</td>
+<td style="text-align:right;">
+8.06
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1012.3
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:left;">
+2013-01-01 02:00:00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+EWR
+</td>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+3
+</td>
+<td style="text-align:right;">
+39.02
+</td>
+<td style="text-align:right;">
+28.04
+</td>
+<td style="text-align:right;">
+64.43
+</td>
+<td style="text-align:right;">
+240
+</td>
+<td style="text-align:right;">
+11.51
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1012.5
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:left;">
+2013-01-01 03:00:00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+EWR
+</td>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+4
+</td>
+<td style="text-align:right;">
+39.92
+</td>
+<td style="text-align:right;">
+28.04
+</td>
+<td style="text-align:right;">
+62.21
+</td>
+<td style="text-align:right;">
+250
+</td>
+<td style="text-align:right;">
+12.66
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1012.2
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:left;">
+2013-01-01 04:00:00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+EWR
+</td>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+5
+</td>
+<td style="text-align:right;">
+39.02
+</td>
+<td style="text-align:right;">
+28.04
+</td>
+<td style="text-align:right;">
+64.43
+</td>
+<td style="text-align:right;">
+260
+</td>
+<td style="text-align:right;">
+12.66
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1011.9
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:left;">
+2013-01-01 05:00:00
+</td>
+</tr>
+<tr>
+<td style="text-align:left;">
+EWR
+</td>
+<td style="text-align:right;">
+2013
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+1
+</td>
+<td style="text-align:right;">
+6
+</td>
+<td style="text-align:right;">
+37.94
+</td>
+<td style="text-align:right;">
+28.04
+</td>
+<td style="text-align:right;">
+67.21
+</td>
+<td style="text-align:right;">
+240
+</td>
+<td style="text-align:right;">
+11.51
+</td>
+<td style="text-align:right;">
+NA
+</td>
+<td style="text-align:right;">
+0
+</td>
+<td style="text-align:right;">
+1012.4
+</td>
+<td style="text-align:right;">
+10
+</td>
+<td style="text-align:left;">
+2013-01-01 06:00:00
+</td>
+</tr>
+</tbody>
+</table>
+<p>Podemos ver que hay una variable llamada <code>temp</code> de registros de temperatura por hora en grados Fahrenheit en estaciones meteorológicas cerca de los tres aeropuertos de la ciudad de Nueva York: Newark (código <code>origin == EWR</code>), JFK y La Guardia (<code>LGA</code>). Sin embargo, en lugar de considerar las temperaturas por hora de todos los días en 2013 para los tres aeropuertos, para simplificar, solo consideraremos las temperaturas por hora en el aeropuerto de Newark durante los primeros 15 días en enero.</p>
+<pre class="r"><code>early_january_weather &lt;- weather %&gt;% 
+  filter(origin == &quot;EWR&quot; &amp; month == 1 &amp; day &lt;= 15)</code></pre>
+<div id="section-geomline" class="section level3">
+<h3>Gráficas de líneas con <code>geom_line()</code></h3>
+<p>Vamos a representar un gráfico lineal de temperaturas por hora en <code>early_january_weather</code> usando<code>geom_line()</code> en lugar de <code>geom_point()</code> como hicimos para los diagramas de dispersión:</p>
+<pre class="r"><code>ggplot(data = early_january_weather, 
+       mapping = aes(x = time_hour, 
+                     y = temp)) +
+  geom_line()</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/hourlytemp-1.png" alt="Temperatura por hora en Newark desde el 1 al 15 de enero de 2013" width="624" />
+<p class="caption">
+Temperatura por hora en Newark desde el 1 al 15 de enero de 2013
+</p>
+</div>
+<p>Al igual que con el código en el que usamos la función <code>ggplot()</code> que creó el diagrama de dispersión de los retrasos de salida y llegada para los vuelos de <em>Alaska Airlines</em>, vamos a analizar el código anterior pieza por pieza en términos de la gramática de gráficos:</p>
+<ul>
+<li>Dentro de la llamada a la función <code>ggplot()</code>, especificamos dos de los componentes de la gramática de gráficos como argumentos:
+<ol style="list-style-type: decimal">
+<li>El <em>dataframe</em> <code>data</code> debe ser <code>early_january_weather</code>, configurando <code>data = early_january_weather</code></li>
+<li>La asignación estética <code>aes</code>, estableciendo <code>aes (x = time_hour, y = temp)</code>. Específicamente:
+<ul>
+<li>La variable <code>time_hour</code> se asigna a la estética de la posición <code>x</code>.</li>
+<li>la variable <code>temp</code> se corresponde con la estética de la posición <code>y</code></li>
+</ul></li>
+</ol></li>
+<li>Añadimos una capa a la llamada a la función <code>ggplot()</code> usando el signo <code>+</code>. La capa en cuestión especifica el tercer componente de la gramática: el objeto geométrico (<code>geom</code>) en cuestión. En este caso, el objeto geométrico es una <em>línea</em>, que se establece al especificar <code>geom_line()</code>.</li>
+</ul>
+<p><strong>Ejercicio</strong></p>
+<p>Representa gráficamente una serie temporal de otra variable continua distinta de <code>temp</code>, para el aeropuerto de Newark, en los primeros 15 días de enero de 2013. Se puede elegir <code>humid</code> (humedad relativa en %), <code>wind_speed</code> (velocidad del viento en millas por hora), <code>precip</code> (precipitaciones, en pulgadas), <code>visib</code> (visibilidad, en millas) o <code>pressure</code> (la presión, en milibares).</p>
+<div class="tutorial-exercise" data-label="line" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<hr />
+</div>
+</div>
+<div id="section-histograms" class="section level2">
+<h2>5NG#3: Histogramas</h2>
+<p>Consideremos la variable <code>temp</code> en el <em>dataframe</em> <code>weather</code> una vez más, pero a diferencia de los gráficos lineales anteriores, digamos que no nos importa la relación entre la temperatura y el tiempo, sino que solo nos preocupamos por cómo los valores de <code>temp</code> se <em>distribuyen</em>. En otras palabras:</p>
+<ol style="list-style-type: decimal">
+<li>¿Cuáles son los valores más pequeños y más grandes?</li>
+<li>¿Cuál es el valor central?</li>
+<li>¿Cómo se extienden los valores?</li>
+<li>¿Cuáles son los valores más frecuentes e infrecuentes?</li>
+</ol>
+<p>Una forma de visualizar esta <em>distribución</em> de esta variable única <code>temp</code> es representarlos a lo largo de una línea horizontal:</p>
+<pre><code>## Warning: Removed 1 rows containing missing values (geom_point).</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/temp-on-line-1.png" alt="Gráfica de registros de temperatura por hora de NYC en 2013" width="624" />
+<p class="caption">
+Gráfica de registros de temperatura por hora de NYC en 2013
+</p>
+</div>
+<p>Esto nos da una idea general de cómo se distribuyen los valores de <code>temp</code>: podemos observar que las temperaturas varían desde alrededor de 11°F hasta 100 °F. Además, parece que hay más temperaturas registradas entre 40°F y 60°F que fuera de este rango. Sin embargo, debido al alto grado de superposición en los puntos, es difícil tener una idea de exactamente cuántos valores se encuentran entre, por ejemplo, 50°F y 55°F.</p>
+<p>Lo que se suele construir normalmente en lugar de la gráfica anterior se conoce como <em>histograma</em>. Un histograma es un gráfico que visualiza la <em>distribución</em> de un valor numérico de la siguiente manera:</p>
+<ol style="list-style-type: decimal">
+<li>Primero, dividimos el eje x en una serie de <em>bins</em> (segmentos), donde cada <em>bin</em> representa un rango o intervalo de valores.</li>
+<li>Para cada grupo formado de esa forma, contamos el número de observaciones que caen en el rango correspondiente a ese grupo.</li>
+<li>Luego, para cada <em>bin</em>, dibujamos una barra cuya altura marca el recuento correspondiente.</li>
+</ol>
+<p>Vamos a profundizar en un ejemplo de histograma:</p>
+<div class="figure">
+<img src="ggplot2_files/figure-html/histogramexample-1.png" alt="Histograma de ejemplo." width="624" />
+<p class="caption">
+Histograma de ejemplo.
+</p>
+</div>
+<p>Observe que hay tres segmentos de igual ancho entre 30°F y 60°F, por lo tanto, tenemos tres segmentos de ancho 10°F cada una: un intervalo para el rango de 30-40°F, otro intervalo para 40-50°F, y otro intervalo para el rango 50-60°F. Ya que:</p>
+<ol style="list-style-type: decimal">
+<li>El intervalo para el rango de 30-40°F tiene una altura de alrededor de 5000, este histograma nos indica que alrededor de 5000 de los registros de temperatura por hora se encuentran entre 30°F y 40°F.</li>
+<li>El intervalo para el rango de 40-50°F tiene una altura de alrededor de 4300, este histograma nos indica que alrededor de 4300 de los registros de temperatura por hora se encuentran entre 40°F y 50°F.</li>
+<li>El intervalo para el rango de 50-60°F tiene una altura de alrededor de 3500, este histograma nos indica que alrededor de 3500 de los registros de temperatura por hora se encuentran entre 50°F y 60°F.</li>
+</ol>
+<p>Los intervalos restantes tienen todos una interpretación similar.</p>
+<div id="section-geomhistogram" class="section level3">
+<h3>Histogramas usando <code>geom_histogram()</code></h3>
+<p>Ahora presentamos el código de <code>ggplot()</code> para representar nuestro primer histograma. A diferencia de los diagramas de dispersión y los gráficos lineales, ahora solo se asigna una variable en <code>aes()</code>: la única variable numérica <code>temp</code>. El parámetro estético <code>y</code> de un histograma se calcula automáticamente. Además, la capa de objeto geométrico ahora es un <code>geom_histogram()</code>.</p>
+<pre class="r"><code>ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram()</code></pre>
+<pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+<pre><code>## Warning: Removed 1 rows containing non-finite values (stat_bin).</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/weather-histogram-1.png" alt="Histograma de temperaturas por hora en tres aeropuertos de Nueva York." width="624" />
+<p class="caption">
+Histograma de temperaturas por hora en tres aeropuertos de Nueva York.
+</p>
+</div>
+<p>Vamos a desglosar los mensajes que R nos ha enviado primero. El primer mensaje nos dice que el histograma se construyó utilizando <code>bins = 30</code>, en otras palabras, 30 intervalos con mismo ancho. Es el valor predeterminado, o por defecto. A menos que se especifique un número concreto, R elegirá 30 de forma predeterminada. Veremos en la siguiente sección cómo cambiar este número predeterminado de segmentos. El segundo mensaje nos dice algo similar al mensaje de advertencia que recibimos cuando ejecutamos el código para crear un diagrama de dispersión de los retrasos de salida y llegada de los vuelos de <em>Alaska Airlines</em>: se ha eliminado una fila con un valor perdido (<code>NA</code>) para la variable <code>temp</code>.</p>
+<p>Ahora vamos a explicar el histograma resultante. Podemos observar que los valores inferiores a 25°F y los valores superiores a 80°F son bastante raros. Sin embargo, debido a la gran cantidad de intervalos, es difícil tener una idea de qué rango de temperaturas cubre cada intervalo, todo es como una masa amorfa donde no se distinguen los límites entre intervalos. Así que vamos a agregar bordes verticales blancos que demarquen los intervalos, agregando un argumento <code>color = &quot;white&quot;</code> a <code>geom_histogram()</code>:</p>
+<pre class="r"><code>ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram(color = &quot;white&quot;)</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/weather-histogram-2-1.png" alt="Histograma de temperaturas por hora en tres aeropuertos de Nueva York con bordes blancos." width="624" />
+<p class="caption">
+Histograma de temperaturas por hora en tres aeropuertos de Nueva York con bordes blancos.
+</p>
+</div>
+<p>Ahora podemos asociar mejor los rangos de temperaturas a cada uno de los intervalos. También podemos variar el color (interno) de las barras configurando el argumento <code>fill</code>. Ejecute <code>colors()</code> para ver todos los 657 colores posibles.</p>
+<pre class="r"><code>ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram(color = &quot;white&quot;, 
+                 fill = &quot;steelblue&quot;)</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/weather-histogram-3-1.png" alt="Histograma de temperaturas por hora en tres aeropuertos de Nueva York con bordes blancos." width="624" />
+<p class="caption">
+Histograma de temperaturas por hora en tres aeropuertos de Nueva York con bordes blancos.
+</p>
+</div>
+</div>
+<div id="section-adjustbins" class="section level3">
+<h3>Ajustar el tamaño de los intervalos</h3>
+<p>En las figuras anteriores podemos observar que en el rango de 50-75°F parece haber aproximadamente 8 intervalos. Por lo tanto, cada intervalo tiene un ancho de 25 dividido por 8, o aproximadamente 3.12°F, que no es un rango fácil de interpretar para trabajar. Ahora ajustemos el número de <em>bins</em> en nuestro histograma con uno de dos métodos:</p>
+<ol style="list-style-type: decimal">
+<li>Ajustar el número de <em>bins</em> a través del argumento <code>bins</code> de <code>geom_histogram()</code>.</li>
+<li>Ajustar el ancho de los contenedores a través del argumento <code>binwidth</code> de <code>geom_histogram()</code>.</li>
+</ol>
+<p>Al usar el primer método, tenemos el poder de especificar en cuántos intervalos nos gustaría dividir el eje x. Como se mencionó en la sección anterior, el número predeterminado de intervalos es 30. Podemos anular esta opción predeterminada, con, por ejemplo, 40 <em>bins</em>, de la siguiente manera:</p>
+<pre class="r"><code>ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram(bins = 40, 
+                 color = &quot;white&quot;)</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/unnamed-chunk-8-1.png" alt="Histograma con 40 bins" width="624" />
+<p class="caption">
+Histograma con 40 bins
+</p>
+</div>
+<p>Usando el segundo método, en lugar de especificar el número de intervalos, especificamos el ancho de los mismos, utilizando el argumento <code>binwidth</code> en la capa <code>geom_histogram()</code>. Por ejemplo, establezcamos el ancho de cada bandeja en 10°F:</p>
+<pre class="r"><code>ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram(binwidth = 10, 
+                 color = &quot;white&quot;)</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/unnamed-chunk-9-1.png" alt="Histograma con binwidth 10." width="624" />
+<p class="caption">
+Histograma con binwidth 10.
+</p>
+</div>
+<p>Todo este tipo de representaciones nos ayuda a contestar a preguntas como cuál es el centro de la distribución, si la distribución de una variable es simétrica con respecto a algún punto, o si está <em>sesgada</em> hacia la izquierda o derecha, o si los datos están más o menos dispersos respecto del centro de la distribución.</p>
+<p><strong>Ejercicio</strong></p>
+<p>Para alguna de las variables continuas vistas en el <em>dataset</em> <code>weather</code>, realizar un histograma, rellenando las barras de color rojo, con borde amarillo, y con 50 intervalos (<em>bins</em>).</p>
+<div class="tutorial-exercise" data-label="hist1" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<hr />
+</div>
+</div>
+<div id="section-facets" class="section level2">
+<h2>Facetas (<em>facets</em>)</h2>
+<p>Antes de continuar con el 5NG, introduzcamos brevemente un nuevo concepto llamado <em>faceting</em>. El faceteado se utiliza cuando nos gustaría dividir una visualización particular de variables según el valor de otra variable. Esto crea copias múltiples del mismo tipo de gráfico con ejes x e y coincidentes, pero cuyo contenido será diferente.</p>
+<p>Por ejemplo, supongamos que estamos interesados en ver cómo el histograma de los registros de temperatura por hora en los tres aeropuertos de Nueva York difiere según el mes. La forma de realizarlo es dividir este histograma en los 12 meses posibles en un año dado. En otras palabras, dibujaremos histogramas de <code>temp</code> para cada mes (<code>month</code>). Hacemos esto agregando la capa <code>facet_wrap(~ month)</code>.</p>
+<pre class="r"><code>ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram(binwidth = 5, 
+                 color = &quot;white&quot;) +
+  facet_wrap(~ month)</code></pre>
+<pre><code>## Warning: Removed 1 rows containing non-finite values (stat_bin).</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/facethistogram-1.png" alt="Histograma faceteado." width="624" />
+<p class="caption">
+Histograma faceteado.
+</p>
+</div>
+<p>Hay que tener en cuenta el uso de la virgulilla <code>~</code> antes de <code>month</code> en <code>facet_wrap()</code>. Es obligatoria y recibiremos el error <code>Error en as.quoted(facets): el objeto 'month' no se encuentra</code> si no lo incluimos antes de <code>month</code>.</p>
+<p>También podemos especificar el número de filas y columnas en la cuadrícula, usando los argumentos <code>nrow</code> y <code>ncol</code> dentro de <code>facet_wrap()</code>. Por ejemplo, digamos que nos gustaría que nuestra gráfica faceteada tuviera 4 filas en lugar de 3. Añadimos el argumento <code>nrow = 4</code> a <code>facet_wrap (~ month)</code>.</p>
+<pre class="r"><code>ggplot(data = weather, 
+       mapping = aes(x = temp)) +
+  geom_histogram(binwidth = 5, 
+                 color = &quot;white&quot;) +
+  facet_wrap(~ month, 
+             nrow = 4)</code></pre>
+<pre><code>## Warning: Removed 1 rows containing non-finite values (stat_bin).</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/facethistogram2-1.png" alt="Histograma faceteado con 4 filas en lugar de 3." width="624" />
+<p class="caption">
+Histograma faceteado con 4 filas en lugar de 3.
+</p>
+</div>
+<p>Podemos observar que, como podríamos esperar en el hemisferio norte, las temperaturas tienden a ser más altas en los meses de verano, mientras que tienden a ser más bajas en el invierno.</p>
+<p><strong>Ejercicio</strong></p>
+<p>Construir una gráfica lineal para la temperatura por hora en el aeropuerto de Newark, dividiendo la gráfica en 12 <em>facets</em>, una por mes.</p>
+<div class="tutorial-exercise" data-label="facets2" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<hr />
+</div>
+<div id="section-boxplots" class="section level2">
+<h2>5NG#4: Gráfico de cajas</h2>
+<p>Si bien los histogramas faceteados son una visualización que nos permite comparar distribuciones de una variable numérica según los valores de otra variable, otra visualización que logra este mismo objetivo son los <em>gráficos de cajas</em> (<em>boxplots</em>). Un gráfico de caja se construye a partir de la información proporcionada en el <em>resumen en cinco cantidades</em> de una variable numérica. Para mantener las cosas simples por ahora, solo consideraremos los registros por hora de la temperatura del mes de noviembre:</p>
+<div class="figure">
+<img src="ggplot2_files/figure-html/nov1-1.png" alt="Temperaturas en noviembre." width="624" />
+<p class="caption">
+Temperaturas en noviembre.
+</p>
+</div>
+<p>Estas 2141 observaciones tienen el siguiente resumen de cinco números:</p>
+<ol style="list-style-type: decimal">
+<li>Mínimo: 21.02°F</li>
+<li>Primer cuartil o percentil 25: 35.96°F</li>
+<li>Mediana o segundo cuartil o percentil 50: 44.96°F</li>
+<li>Tercer cuartil o percentil 75: 51.98°F</li>
+<li>Máximo: 71.06°F</li>
+</ol>
+<p>Marquemos estos 5 valores con líneas horizontales discontinuas en la gráfica:</p>
+<div class="figure">
+<img src="ggplot2_files/figure-html/nov2-1.png" alt="Temperaturas en noviembre." width="624" />
+<p class="caption">
+Temperaturas en noviembre.
+</p>
+</div>
+<p>Añadamos el diagrama de caja debajo de estos puntos y las líneas horizontales discontinuas:</p>
+<div class="figure">
+<img src="ggplot2_files/figure-html/nov3-1.png" alt="Temperaturas en noviembre." width="624" />
+<p class="caption">
+Temperaturas en noviembre.
+</p>
+</div>
+<p>La gráfica de cajas resume las 2141 observciones, apuntando que:</p>
+<ol style="list-style-type: decimal">
+<li>El 25% de los puntos (alrededor de 534 observaciones) cae por debajo del borde inferior de la caja, que es el primer cuartil: 35.96°F. En otras palabras, el 25% de las observaciones fueron más frías que 35.96°F.</li>
+<li>El 25% de los puntos se ubican entre el borde inferior de la caja y la línea media sólida, que es la mediana: 44.96°F. En otras palabras, el 25% de las observaciones fueron entre 35.96°F y 44.96°F y, por tanto, el 50% de las observaciones fueron más frías que 44.96°F.</li>
+<li>El 25% de los puntos se ubican entre la línea media sólida y el borde superior de la caja, que es el tercer cuartil: 51.98°F. En otras palabras, el 25% de las observaciones fueron entre 44.96°F y 51.98°F y el 75% de las observaciones fueron más frías que 51.98°F.</li>
+<li>El 25% de los puntos caen por encima del borde superior de la caja. En otras palabras, el 25% de las observaciones fueron más cálidas que 51.98°F.</li>
+<li>El 50% central de los puntos caen dentro del <em>intervalo intercuartílico</em>, entre el primer y el tercer cuartil, que mide: 51.98 - 35.96 = 16.02°F.</li>
+</ol>
+<p>Por último, para mayor claridad, eliminemos los puntos pero mantengamos las líneas horizontales discontinuas:</p>
+<div class="figure">
+<img src="ggplot2_files/figure-html/nov4-1.png" alt="Temperaturas en noviembre" width="624" />
+<p class="caption">
+Temperaturas en noviembre
+</p>
+</div>
+<p>Ahora podemos ver mejor los <em>bigotes</em> (<em>whiskers</em>) del diagrama de caja. Se adhieren desde ambos extremos de la caja hasta las temperaturas mínimas y máximas observadas de 21.02°F y 71.06°F, respectivamente. Sin embargo, los <em>whiskers</em> no siempre se extienden hasta los valores observados más pequeños y más grandes. De hecho, no se pueden extender más allá de 1.5 veces el rango intercuartílico desde cualquier extremo de la caja, en este caso 1.5 <span class="math inline">\(\times\)</span> 16.02°F = 24.03°F desde cualquiera de los extremos de la caja. Cualquier valor observado fuera de estos <em>whiskers</em> se marca con puntos, y se les denomina <em>valores atípicos</em>, que veremos en la siguiente sección.</p>
+<div id="section-geomboxplot" class="section level3">
+<h3><em>Boxplots</em> usando <code>geom_boxplot()</code></h3>
+<p>Ahora creamos un diagrama de caja de las temperaturas por hora divididas en 12 meses como hicimos anteriormente con los histogramas faceteados. Hacemos esto asignando la variable <code>month</code> a la estética de la posición x, la variable<code>temp</code> a la estética de la posición y, y agregando una capa <code>geom_boxplot()</code>:</p>
+<pre class="r"><code>ggplot(data = weather, 
+       mapping = aes(x = month, 
+                     y = temp)) +
+  geom_boxplot()</code></pre>
+<pre><code>## Warning: Continuous x aesthetic -- did you forget aes(group=...)?</code></pre>
+<pre><code>## Warning: Removed 1 rows containing non-finite values (stat_boxplot).</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/badbox-1.png" alt="Especificación no válida para _boxplot_" width="624" />
+<p class="caption">
+Especificación no válida para <em>boxplot</em>
+</p>
+</div>
+<pre><code>Warning messages:
+1: Continuous x aesthetic -- did you forget aes(group=...)? 
+2: Removed 1 rows containing non-finite values (stat_boxplot). </code></pre>
+<p>Podemos ver que esta gráfica no proporciona información sobre la temperatura separada por mes. Los mensajes de advertencia nos dan una idea de por qué. El segundo mensaje de advertencia es idéntico al mensaje de advertencia cuando se representa un histograma de temperaturas por hora: uno de los valores se registró como <em>perdido</em> (<code>NA</code>). Sin embargo, el primer mensaje de advertencia nos dice que tenemos una variable numérica o “continua” en la estética de la posición x. Sin embargo, los diagramas de caja requieren una variable categórica en el eje x.</p>
+<p>Podemos convertir la variable numérica <code>month</code> en una variable categórica, usando la función<code>factor()</code>. Entonces, después de aplicar <code>factor(month)</code>, el mes pasa de tener valores numéricos 1, 2, …, 12 a tener etiquetas “1”, “2”, …, “12”.</p>
+<pre class="r"><code>ggplot(data = weather, 
+       mapping = aes(x = factor(month), 
+                     y = temp)) +
+  geom_boxplot()</code></pre>
+<pre><code>## Warning: Removed 1 rows containing non-finite values (stat_boxplot).</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/monthtempbox-1.png" alt="Boxplot de temperatura por mes" width="624" />
+<p class="caption">
+Boxplot de temperatura por mes
+</p>
+</div>
+<p>Esta figura muestra 12 diagramas de cajas separados, con las características que vimos anteriormente, enfocadas solo en noviembre:</p>
+<ul>
+<li>Las partes de las cajas de esta visualización representan el cuartil 1º, el 2º (la mediana) y el 3º.</li>
+<li>La altura de cada caja, es decir, el valor del cuartil 3º menos el valor del cuartil 1º, es el <em>rango intercuartílico</em>. Es una medida de la dispersión del 50% central de los valores, con cajas más largas indicando una mayor variabilidad.</li>
+<li>Los <em>whiskers</em> se extienden desde la parte inferior y superior de las cajas y representan puntos menores que el percentil 25 y mayores que el percentil 75, respectivamente. Están configurados para extenderse a no más distancia de <span class="math inline">\(1.5 \times IQR\)</span> unidades a partir de cada extremo de las cajas. La longitud de estos <em>whiskers</em> muestra cómo varían los datos fuera del 50% central de los valores, y <em>whiskers</em> más largos indican una mayor variabilidad.</li>
+<li>Los puntos que representan valores que caen fuera de los <em>whiskers</em> se denominan <em>valores atípicos</em>. Estos pueden considerarse como valores anómalos en la distribución.</li>
+</ul>
+<p>Es importante tener en cuenta que la definición de un valor atípico es algo arbitraria y no algo absoluto. En este caso, se definen por la longitud de los <em>whiskers</em>, que no miden más de <span class="math inline">\(1.5 \times IQR\)</span> unidades. Al observar esta gráfica, podemos ver, como se esperaba, que los meses de verano (de 6 a 8) tienen temperaturas medias más altas, como lo demuestran las líneas continuas más altas en el centro de las cajas. Podemos comparar fácilmente las temperaturas a lo largo de los meses dibujando líneas horizontales imaginarias en la gráfica. Además, la altura de los 12 recuadros según lo cuantificado por los rangos intercuartílicos también es informativa: nos informan sobre la variabilidad o la dispersión de las temperaturas registradas en un mes determinado.</p>
+<p><strong>Ejercicio</strong></p>
+<p>Realizar un <em>boxplot</em> análogo al anterior, usando otra variable continua del <em>dataframe</em> <code>weather</code> en lugar de <code>temp</code>.</p>
+<div class="tutorial-exercise" data-label="boxplot1" data-caption="Code" data-completion="1" data-diagnostics="1" data-startover="1" data-lines="0">
+<script type="application/json" data-opts-chunk="1">{"fig.width":6.5,"fig.height":4,"fig.retina":2,"fig.align":"default","fig.keep":"high","fig.show":"asis","out.width":624,"warning":true,"error":true,"message":true,"exercise.df_print":"paged","exercise.timelimit":60,"exercise.checker":"NULL"}</script>
+</div>
+<hr />
+</div>
+</div>
+<div id="section-geombar" class="section level2">
+<h2>5NG#5: Gráfico de barras</h2>
+<p>Tanto los histogramas como los diagramas de caja son herramientas para visualizar la distribución de las variables numéricas. Otra tarea común es visualizar la distribución de una variable categórica. Esta es una tarea más simple, ya que simplemente estamos contando diferentes categorías, también conocidas como <em>niveles</em>, de una variable categórica. A menudo, la mejor manera de visualizar estos recuentos diferentes, también conocidos como <em>frecuencias</em>, es con un gráfico de barras (<em>barplot</em>).</p>
+<div id="section-barplots-usando-geom_bar" class="section level3">
+<h3><em>Barplots</em> usando <code>geom_bar()</code></h3>
+<p>Volvamos ahora al <em>dataframe</em> <code>flights</code> en el paquete <code>nycflights13</code> y visualicemos la distribución de la variable categórica <code>carrier</code> (aerolínea). En otras palabras, visualicemos la cantidad de vuelos nacionales de los tres aeropuertos de la ciudad de Nueva York que realizó cada compañía aérea en 2013. Debemos usar <code>geom_bar()</code> para crear una gráfica de barras. Al igual que en un <code>geom_histogram()</code>, solo hay una variable en el mapeo estético <code>aes()</code>: la variable <code>carrier</code> se asigna a la posición <code>x</code>.</p>
+<pre class="r"><code>ggplot(data = flights,
+       mapping = aes(x = carrier)) +
+  geom_bar()</code></pre>
+<div class="figure">
+<img src="ggplot2_files/figure-html/flightsbar-1.png" alt="Número de vuelos que salen de Nueva York en 2013 por aerolínea usando geom_bar." width="624" />
+<p class="caption">
+Número de vuelos que salen de Nueva York en 2013 por aerolínea usando geom_bar.
+</p>
+</div>
+<p>Observemos que United Air Lines (UA), JetBlue Airways (B6) y ExpressJet Airlines (EV) tuvieron la mayoría de los vuelos que salen de la ciudad de Nueva York en 2013.</p>
+</div>
+<div id="section-evitar-graficos-circulares-o-de-tarta" class="section level3">
+<h3>Evitar gráficos circulares (o de tarta)</h3>
+<p>Desafortunadamente, uno de los gráficos más comunes que se ven hoy en día para los datos categóricos es el gráfico circular. Si bien pueden parecer bastante inofensivos, en realidad presentan un problema porque los humanos no pueden juzgar bien los ángulos. Sobreestimamos los ángulos superiores a 90 grados y subestimamos los ángulos inferiores a 90 grados. En otras palabras, es difícil para nosotros determinar el tamaño relativo de una porción del pastel en comparación con otra.</p>
+<p>Examinemos los mismos datos utilizados en nuestra gráfica de barras anterior del número de vuelos que salen de la Ciudad de Nueva York, pero esta vez utilizaremos un gráfico circular.</p>
+<div class="figure">
+<img src="ggplot2_files/figure-html/carrierpie-1.png" alt="El temido gráfico circular" width="624" />
+<p class="caption">
+El temido gráfico circular
+</p>
+</div>
+<p>Intenta responder las siguientes preguntas:</p>
+<ul>
+<li>¿Cuánto más grande es la porción del pastel para ExpressJet Airlines (<code>EV</code>) en comparación con US Airways (<code>US</code>)?,</li>
+<li>¿Cuál es la tercera aerolínea más grande en términos de vuelos que salen?, y</li>
+<li>¿Cuántas compañías aéreas tienen menos vuelos que United Airlines (<code>UA</code>)?</li>
+</ul>
+<p>Si bien es bastante difícil responder estas preguntas cuando se mira el gráfico circular, podemos responder estas preguntas mucho más fácilmente utilizando el gráfico de barras. Esto es cierto ya que los gráficos de barras presentan la información de manera tal que las comparaciones entre categorías se pueden hacer con líneas horizontales únicas, mientras que los gráficos circulares presentan la información de manera tal que las comparaciones entre categorías se deben hacer comparando ángulos.</p>
+<hr />
+</div>
+</div>
+<div id="section-tabla-de-resumen" class="section level2">
+<h2>Tabla de resumen</h2>
+<p>Recapitulemos los cinco gráficos con nombre (5NG) en la tabla siguiente, resumiendo sus diferencias. Usando estos 5NG, podrá visualizar las distribuciones y relaciones de las variables contenidas en una amplia gama de conjuntos de datos. Éste será aún más el caso a medida que comencemos a asignar más variables a más opciones de atributos estéticos <code>aes</code> de cada objeto geométrico, desbloqueando aún más la increíble potencia del paquete <code>ggplot2</code>.</p>
+<table>
+<colgroup>
+<col width="7%" />
+<col width="31%" />
+<col width="7%" />
+<col width="53%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Nombre del gráfico</th>
+<th align="left">Uso</th>
+<th align="left">Objeto geométrico</th>
+<th align="left">Notas</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Dispersión</td>
+<td align="left">Relación entre dos variables numéricas</td>
+<td align="left"><code>geom_point()</code></td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Lineal</td>
+<td align="left">Relación entre dos variables numéricas</td>
+<td align="left"><code>geom_line()</code></td>
+<td align="left">Se usa cuando hay un orden secuencial en la variable x (tiempo)</td>
+</tr>
+<tr class="odd">
+<td align="left">Histograma</td>
+<td align="left">Distribución de una variable numérica</td>
+<td align="left"><code>geom_histogram()</code></td>
+<td align="left">Los histogramas faceteados muestran la distribución de una variable numérica dividida según los valores de otra variable categórica</td>
+</tr>
+<tr class="even">
+<td align="left">Cajas</td>
+<td align="left">Distribución de una variable numérica dividida según una variable categórica</td>
+<td align="left"><code>geom_boxplot()</code></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Barras</td>
+<td align="left">Distribución de una variable categórica</td>
+<td align="left"><code>geom_bar()</code></td>
+<td align="left"></td>
+</tr>
+</tbody>
+</table>
+
+<script type="application/shiny-prerendered" data-context="server-start">
+library(learnr)
+library(tidyverse)
+
+tutorial_options(exercise.timelimit = 60)
+knitr::opts_chunk$set(error = TRUE)
+
+chap <- 0
+lc <- 0
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+learnr:::register_http_handlers(session, metadata = NULL)
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-scatter-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-scatter-code-editor`)), session)
+output$`tutorial-exercise-scatter-output` <- renderUI({
+  `tutorial-exercise-scatter-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-scatter2-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-scatter2-code-editor`)), session)
+output$`tutorial-exercise-scatter2-output` <- renderUI({
+  `tutorial-exercise-scatter2-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-name-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-name-code-editor`)), session)
+output$`tutorial-exercise-name-output` <- renderUI({
+  `tutorial-exercise-name-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-line-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-line-code-editor`)), session)
+output$`tutorial-exercise-line-output` <- renderUI({
+  `tutorial-exercise-line-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-hist1-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-hist1-code-editor`)), session)
+output$`tutorial-exercise-hist1-output` <- renderUI({
+  `tutorial-exercise-hist1-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-facets2-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-facets2-code-editor`)), session)
+output$`tutorial-exercise-facets2-output` <- renderUI({
+  `tutorial-exercise-facets2-result`()
+})
+</script>
+ 
+<script type="application/shiny-prerendered" data-context="server">
+`tutorial-exercise-boxplot1-result` <- learnr:::setup_exercise_handler(reactive(req(input$`tutorial-exercise-boxplot1-code-editor`)), session)
+output$`tutorial-exercise-boxplot1-output` <- renderUI({
+  `tutorial-exercise-boxplot1-result`()
+})
+</script>
+ <!--html_preserve-->
+<script type="application/shiny-prerendered" data-context="dependencies">
+{"type":"list","attributes":{},"value":[{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["jquery"]},{"type":"character","attributes":{},"value":["1.11.3"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmd/h/jquery"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["jquery.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["rmarkdown"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["1.11"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["bootstrap"]},{"type":"character","attributes":{},"value":["3.3.5"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmd/h/bootstrap"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["viewport"]}},"value":[{"type":"character","attributes":{},"value":["width=device-width, initial-scale=1"]}]},{"type":"character","attributes":{},"value":["js/bootstrap.min.js","shim/html5shiv.min.js","shim/respond.min.js"]},{"type":"character","attributes":{},"value":["css/cerulean.min.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["rmarkdown"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["1.11"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["pagedtable"]},{"type":"character","attributes":{},"value":["1.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmd/h/pagedtable-1.1"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["js/pagedtable.js"]},{"type":"character","attributes":{},"value":["css/pagedtable.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["rmarkdown"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["1.11"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["highlightjs"]},{"type":"character","attributes":{},"value":["9.12.0"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmd/h/highlightjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["highlight.js"]},{"type":"character","attributes":{},"value":["textmate.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["rmarkdown"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["1.11"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/tutorial"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial.js"]},{"type":"character","attributes":{},"value":["tutorial.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial-autocompletion"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/tutorial"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial-autocompletion.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial-diagnostics"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/tutorial"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial-diagnostics.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial-format"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmarkdown/templates/tutorial/resources"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial-format.js"]},{"type":"character","attributes":{},"value":["tutorial-format.css","rstudio-theme.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["jquery"]},{"type":"character","attributes":{},"value":["1.11.3"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmd/h/jquery"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["jquery.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["rmarkdown"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["1.11"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["font-awesome"]},{"type":"character","attributes":{},"value":["5.1.0"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["rmd/h/fontawesome"]}]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["css/all.css","css/v4-shims.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["rmarkdown"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["1.11"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["bootbox"]},{"type":"character","attributes":{},"value":["4.4.0"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/bootbox"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["bootbox.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["localforage"]},{"type":"character","attributes":{},"value":["1.5"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/localforage"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["localforage.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/tutorial"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial.js"]},{"type":"character","attributes":{},"value":["tutorial.css"]},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial-autocompletion"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/tutorial"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial-autocompletion.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["tutorial-diagnostics"]},{"type":"character","attributes":{},"value":["0.9.2.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/tutorial"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["tutorial-diagnostics.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["kePrint"]},{"type":"character","attributes":{},"value":["0.0.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["kePrint-0.0.1"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["kePrint.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["kableExtra"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.0"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["kePrint"]},{"type":"character","attributes":{},"value":["0.0.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["kePrint-0.0.1"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["kePrint.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["kableExtra"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.0"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["kePrint"]},{"type":"character","attributes":{},"value":["0.0.1"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["kePrint-0.0.1"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["kePrint.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["kableExtra"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.0"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["ace"]},{"type":"character","attributes":{},"value":["1.2.6"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/ace"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["ace.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["name","version","src","meta","script","stylesheet","head","attachment","package","all_files","pkgVersion"]},"class":{"type":"character","attributes":{},"value":["html_dependency"]}},"value":[{"type":"character","attributes":{},"value":["clipboardjs"]},{"type":"character","attributes":{},"value":["1.5.15"]},{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["file"]}},"value":[{"type":"character","attributes":{},"value":["lib/clipboardjs"]}]},{"type":"NULL"},{"type":"character","attributes":{},"value":["clipboard.min.js"]},{"type":"NULL"},{"type":"NULL"},{"type":"NULL"},{"type":"character","attributes":{},"value":["learnr"]},{"type":"logical","attributes":{},"value":[true]},{"type":"character","attributes":{},"value":["0.9.2.1"]}]}]}
+</script>
+<!--/html_preserve-->
+<!--html_preserve-->
+<script type="application/shiny-prerendered" data-context="execution_dependencies">
+{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["packages"]}},"value":[{"type":"list","attributes":{"names":{"type":"character","attributes":{},"value":["packages","version"]},"class":{"type":"character","attributes":{},"value":["data.frame"]},"row.names":{"type":"integer","attributes":{},"value":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77]}},"value":[{"type":"character","attributes":{},"value":["assertthat","backports","base","bindr","bindrcpp","broom","cellranger","cli","colorspace","compiler","crayon","datasets","digest","dplyr","evaluate","forcats","gapminder","ggplot2","glue","graphics","grDevices","grid","gtable","haven","highr","hms","htmltools","htmlwidgets","httpuv","httr","jsonlite","kableExtra","knitr","labeling","later","lattice","lazyeval","learnr","lubridate","magrittr","markdown","methods","mime","modelr","munsell","nlme","nycflights13","pillar","pkgconfig","plyr","promises","purrr","R6","Rcpp","readr","readxl","rlang","rmarkdown","rprojroot","rstudioapi","rvest","scales","shiny","stats","stringi","stringr","tibble","tidyr","tidyselect","tidyverse","tools","utils","viridisLite","withr","xml2","xtable","yaml"]},{"type":"character","attributes":{},"value":["0.2.0","1.1.2","3.5.1","0.1.1","0.2.2","0.5.0","1.1.0","1.0.1","1.3-2","3.5.1","1.3.4","3.5.1","0.6.18","0.7.8","0.12","0.3.0","0.3.0","3.1.0","1.3.0","3.5.1","3.5.1","3.5.1","0.2.0","1.1.2","0.7","0.4.2","0.3.6","1.2.1","1.4.5","1.3.1","1.5","0.9.0","1.20","0.3","0.7.5","0.20-35","0.2.1","0.9.2.1","1.7.4","1.5","0.8","3.5.1","0.6","0.1.2","0.5.0","3.1-137","1.0.0","1.3.0","2.0.2","1.8.4","1.0.1","0.2.5","2.3.0","1.0.0","1.1.1","1.1.0","0.3.1","1.11","1.3-2","0.8","0.3.2","1.0.0","1.2.0","3.5.1","1.2.4","1.3.1","1.4.2","0.8.2","0.2.5","1.2.1","3.5.1","3.5.1","0.3.0","2.1.2","1.2.0","1.8-3","2.2.0"]}]}]}
+</script>
+<!--/html_preserve-->
+</div>
+
+</div> <!-- topics -->
+
+<div class="topicsContainer">
+<div class="topicsPositioner">
+<div class="band">
+<div class="bandContent topicsListContainer">
+
+<!-- begin doc-metadata -->
+<div id="doc-metadata">
+<h2 class="title toc-ignore" style="display:none;">Tutorial de Visualización de Datos</h2>
+</div>
+<!-- end doc-metadata -->
+
+</div> <!-- bandContent.topicsListContainer -->
+</div> <!-- band -->
+</div> <!-- topicsPositioner -->
+</div> <!-- topicsContainer -->
+
+
+</div> <!-- bandContent page -->
+</div> <!-- pageContent band -->
+
+
+
+
+<script>
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+</script>
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+
+</html>
