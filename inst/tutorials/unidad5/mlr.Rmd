@@ -146,7 +146,7 @@ classif_task <- makeClassifTask(id = "BreastCancer",
 
 **Ejercicio**
 
-Usando como modelo el código anterior, crear una tarea de clasificación para el _dataset_ `Glass` (en el paquete `datasets`), para estimar la variable `Type`. Dejar como clase positiva la que salga por defecto, y almacenar el resultado en una variable llamada `glass_task`.
+Usando como modelo el código anterior, crear una tarea de clasificación para el _dataset_ `Glass` (en el paquete `mlbench`), para estimar la variable `Type`. Dejar como clase positiva la que salga por defecto, y almacenar el resultado en una variable llamada `glass_task`.
 
 ```{r clasi_task, exercise = TRUE, eval.exercise = TRUE}
 data(BreastCancer, package = "mlbench")
