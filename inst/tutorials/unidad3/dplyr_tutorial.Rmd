@@ -6,6 +6,7 @@ runtime: shiny_prerendered
 
 ```{r setup, include=FALSE}
 library(learnr)
+library(gradethis)
 library(tidyverse)
 library(nycflights13)
 
@@ -124,9 +125,9 @@ Otros trucos que nos pueden ayudar con los tests lógicos y con los operadores b
 
 1. Un atajo bastante útil en casos como el anterior es usar la expresión `x %in% y`. Esto seleccionará cada fila donde `x` sea uno de los valores de `y`. Podríamos usarla para escribir el código en la pregunta de arriba:
 
-    ```{r, eval = FALSE}
+```{r, eval = FALSE}
     nov_dec <- filter(flights, month %in% c(11, 12))
-    ```
+```
 
 2. A la vez que tenemos `&` y `|`, R también tiene `&&` y `||`. ¡No se deben usar con `filter()`!
 
@@ -291,9 +292,9 @@ mutate(flights_sml,
 )
 ```
 
-### transmute()
+### .keep
 
-`mutate()` siempre devolverá las nuevas variables añadidas a una copia de los datos originales. Si solo quieres devolver las nuevas variables, usa `transmute()`. En el código de más abajo, reemplaza `mutate()` por `transmute()` y observa la diferencia en lo resultados.
+`mutate()` siempre devolverá las nuevas variables añadidas a una copia de los datos originales. Si solo quieres devolver las nuevas variables, usa el argumento `.keep = 'none'`. En el código de más abajo, añade dicho argumento y observa la diferencia en los resultados.
 
 ```{r transmute, exercise = TRUE, exercise.eval = FALSE}
 mutate(flights,
@@ -304,18 +305,19 @@ mutate(flights,
 ```
 
 ```{r transmute-solution}
-transmute(flights,
+mutate(flights,
   gain = arr_delay - dep_delay,
   hours = air_time / 60,
-  gain_per_hour = gain / hours
+  gain_per_hour = gain / hours,
+  .keep = 'none'
 )
 ```
 
 ```{r transmute-check}
-"¡Excelente trabajo! `transmute()` y `mutate()` hacen lo mismo, pero `transmute()` solo devuelve las nuevas variables. `mutate()` devuelve una copia de los datos originales con las nuevas variables añadidas al final."
+grade_this_code(correct = "¡Excelente trabajo! Con `.keep = 'none'` solo se devuelve las nuevas variables. `mutate()` devuelve una copia de los datos originales con las nuevas variables añadidas al final.")
 ```
 
-## Funciones útiles para mutate()
+## Funciones útiles para `mutate()`
 
 Puedes usar cualquier función dentro de `mutate()` siempre y cuando la función esté **vectorizada**. Una función vectorizada toma un vector de valores como entrada y devuelve un vector con el mismo número de valores como salida. 
 
