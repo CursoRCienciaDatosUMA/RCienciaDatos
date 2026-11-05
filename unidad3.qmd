@@ -1,0 +1,264 @@
+---
+title: "Unidad 3: Manipulación de Datos con dplyr"
+subtitle: "Transformación, filtrado, creación de variables y agregaciones con Tidyverse"
+format:
+  live-html:
+    theme: flatly
+    toc: true
+    toc-depth: 3
+    toc-title: "Contenidos"
+webr:
+  packages:
+    - tidyverse
+    - nycflights13
+    - gradethis
+---
+
+{{< include _extensions/r-wasm/live/_gradethis.qmd >}}
+
+## Bienvenida
+
+La preparación y transformación de datos es una de las etapas críticas de cualquier proyecto en Ciencia de Datos. En este tutorial aprenderemos a usar **`dplyr`** (parte central del ecosistema Tidyverse) para:
+
+- Filtrar filas bajo condiciones lógicas complejas con `filter()`.
+- Seleccionar y renombrar columnas con `select()`.
+- Crear o transformar nuevas variables con `mutate()`.
+- Resumir datos agrupados con `summarise()`, comparando `group_by()` con el argumento moderno `.by`.
+- Encadenar operaciones de forma limpia con el operador de tubería `|>`.
+
+---
+
+## El conjunto de datos: `nycflights13`
+
+Trabajaremos con el dataset `flights` del paquete `nycflights13`, que recoge información sobre los más de 336.000 vuelos que partieron de Nueva York en 2013:
+
+```{webr}
+library(dplyr)
+library(nycflights13)
+
+glimpse(flights)
+```
+
+Las cuatro reglas comunes de las funciones de `dplyr`:
+1. El primer argumento siempre es un data frame (o tibble).
+2. Los argumentos siguientes indican las operaciones a realizar con los nombres de columnas (sin comillas).
+3. El resultado siempre es un nuevo data frame.
+4. Nunca modifican los datos originales en su lugar (*in-place*).
+
+---
+
+## 1. Filtrar filas con `filter()`
+
+`filter()` permite seleccionar el subconjunto de filas que cumplen una o más condiciones lógicas.
+
+```{webr}
+# Vuelos del 1 de enero
+flights |> 
+  filter(month == 1, day == 1) |> 
+  head(5)
+```
+
+### Operadores lógicos y booleanos
+
+- `==` (igual a), `!=` (distinto de), `>`, `<`, `>=`, `<=`
+- `%in% c(...)` (pertenencia a un conjunto)
+- `&` (Y lógico), `|` (O lógico), `!` (negación lógica)
+
+### Ejercicio 1: Retrasos significativos
+
+Encuentra todos los vuelos que sufrieron un retraso en la salida (`dep_delay`) de 120 minutos o más.
+
+```{webr}
+#| exercise: u3_filter_delay
+# Filtra los vuelos con dep_delay >= 120
+flights |> 
+  filter()
+```
+
+```{webr}
+#| exercise: u3_filter_delay
+#| solution: true
+flights |> 
+  filter(dep_delay >= 120)
+```
+
+```{webr}
+#| exercise: u3_filter_delay
+#| check: true
+gradethis::grade_this_code(correct = "¡Correcto! `dep_delay >= 120` filtra los vuelos con dos o más horas de retraso.")
+```
+
+### Ejercicio 2: Destinos Houston
+
+Filtra los vuelos que tenían como destino (`dest`) los aeropuertos de Houston: "IAH" o "HOU". Usa el operador `%in%`.
+
+```{webr}
+#| exercise: u3_filter_dest
+# Filtra destinos IAH o HOU:
+flights |> 
+  filter()
+```
+
+```{webr}
+#| exercise: u3_filter_dest
+#| solution: true
+flights |> 
+  filter(dest %in% c("IAH", "HOU"))
+```
+
+```{webr}
+#| exercise: u3_filter_dest
+#| check: true
+gradethis::grade_this_code(correct = "¡Perfecto! `%in% c('IAH', 'HOU')` es mucho más limpio que usar `dest == 'IAH' | dest == 'HOU'`.")
+```
+
+---
+
+## 2. Seleccionar columnas con `select()`
+
+`select()` permite reducir el número de variables quedándonos con las necesarias:
+
+```{webr}
+flights |> 
+  select(year, month, day, carrier, flight) |> 
+  head(3)
+```
+
+También admite ayudantes como `starts_with()`, `ends_with()`, `contains()` o rangos `year:day`:
+
+```{webr}
+flights |> 
+  select(year:day, starts_with("dep_")) |> 
+  head(3)
+```
+
+---
+
+## 3. Crear nuevas variables con `mutate()`
+
+`mutate()` añade nuevas columnas calculadas a partir de las existentes manteniendo las originales:
+
+```{webr}
+flights |> 
+  select(year:day, ends_with("delay"), distance, air_time) |> 
+  mutate(
+    gain = dep_delay - arr_delay,
+    speed = distance / air_time * 60
+  ) |> 
+  head(4)
+```
+
+### El argumento `.keep`
+
+En versiones modernas de `dplyr`, podemos indicar si queremos conservar todas las columnas (`.keep = "all"`), solo las utilizadas en el cálculo (`.keep = "used"`), o únicamente las nuevas (`.keep = "none"`), reemplazando a la antigua función `transmute()`:
+
+### Ejercicio 3: Calcular tiempo de vuelo en horas
+
+Crea una columna llamada `air_time_hours` dividiendo `air_time` entre 60. Utiliza `.keep = "none"` para devolver solo las nuevas columnas calculadas y las columnas del cálculo.
+
+```{webr}
+#| exercise: u3_mutate_keep
+flights |> 
+  mutate(
+    air_time_hours = air_time / 60,
+    .keep = "none"
+  ) |> 
+  head(5)
+```
+
+```{webr}
+#| exercise: u3_mutate_keep
+#| solution: true
+flights |> 
+  mutate(
+    air_time_hours = air_time / 60,
+    .keep = "none"
+  ) |> 
+  head(5)
+```
+
+```{webr}
+#| exercise: u3_mutate_keep
+#| check: true
+gradethis::grade_this_code(correct = "¡Genial! Con `.keep = 'none'` el resultado contiene exclusivamente las nuevas columnas calculadas.")
+```
+
+---
+
+## 4. Agrupación y Resumen con `summarise()`
+
+`summarise()` colapsa un grupo de observaciones en un único valor resumen:
+
+```{webr}
+flights |> 
+  summarise(
+    delay_medio = mean(dep_delay, na.rm = TRUE),
+    total_vuelos = n()
+  )
+```
+
+### Agrupación tradicional: `group_by()` con `.groups = "drop"`
+
+Cuando agrupamos datos con `group_by()`, las funciones agregadas se calculan por categoría:
+
+```{webr}
+flights |> 
+  group_by(carrier) |> 
+  summarise(
+    n_vuelos = n(),
+    retraso_medio = mean(arr_delay, na.rm = TRUE),
+    .groups = "drop"
+  ) |> 
+  arrange(desc(retraso_medio)) |> 
+  head(5)
+```
+
+### Agrupación moderna con el argumento `.by`
+
+A partir de `dplyr` 1.1.0, se puede realizar la agregación agrupada directa dentro de `summarise(..., .by = columna)` sin necesidad de llamar a `group_by()` ni lidiar con el desagrupado posterior:
+
+```{webr}
+flights |> 
+  summarise(
+    retraso_medio = mean(arr_delay, na.rm = TRUE),
+    total = n(),
+    .by = origin
+  )
+```
+
+### Ejercicio 4: Resumen de vuelos por mes
+
+Utiliza `summarise()` con el argumento `.by = month` (o `group_by(month)`) para calcular:
+- `retraso_medio`: media de `dep_delay` ignorando `NA` (`na.rm = TRUE`).
+- `num_vuelos`: recuento total con `n()`.
+
+Guarda el flujo con el pipe nativo `|>`.
+
+```{webr}
+#| exercise: u3_summarise_by
+# Agrupa por month y resume:
+flights |> 
+  summarise(
+    retraso_medio = ,
+    num_vuelos = ,
+    .by = month
+  )
+```
+
+```{webr}
+#| exercise: u3_summarise_by
+#| solution: true
+flights |> 
+  summarise(
+    retraso_medio = mean(dep_delay, na.rm = TRUE),
+    num_vuelos = n(),
+    .by = month
+  )
+```
+
+```{webr}
+#| exercise: u3_summarise_by
+#| check: true
+gradethis::grade_this_code(correct = "¡Fantástico! Observa la concisión y limpieza del argumento `.by` para resúmenes agrupados.")
+```
+

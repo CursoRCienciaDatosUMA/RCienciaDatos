@@ -1,0 +1,78 @@
+---
+title: "R para Ciencia de Datos"
+subtitle: "Portal de Tutoriales Interactivos con WebR y gradethis"
+author: "Prof. Domingo López-Rodríguez"
+---
+
+::: {.callout-note appearance="simple"}
+### 🚀 Entorno Interactivo 100% en tu Navegador
+Estos tutoriales utilizan **WebR** (R compilado para la Web). Toda la ejecución y evaluación de código ocurre directamente dentro de tu navegador web:
+
+- **Sin instalaciones:** No necesitas tener R ni RStudio instalado en tu equipo.
+- **Sin servidor externo:** Sin problemas de conexión, caídas de servidor ni colas de espera.
+- **Corrección automática:** Los ejercicios cuentan con el motor **`gradethis`**, que evalúa tu código y te ofrece retroalimentación instantánea.
+:::
+
+
+---
+
+## Cómo utilizar los ejercicios interactivos
+
+1. **Editor de código:** Cada ejercicio muestra un bloque donde puedes escribir o modificar código R directamente.
+2. **Ejecución:** Pulsa el botón **Run Code** para evaluar tu código y ver el resultado en pantalla.
+3. **Comprobación:** Haz clic en **Submit Answer** para que `gradethis` compare tu solución con la respuesta esperada y te proporcione pistas y confirmación.
+4. **Pistas y soluciones:** Si te atascas, muchos ejercicios incluyen botones de ayuda con pistas progresivas o la solución modelo.
+
+
+## Estructura del Curso
+
+El material práctico del curso se organiza en cuatro unidades principales interactivas:
+
+::: {.grid}
+
+::: {.g-col-12 .g-col-md-6}
+::: {.card .h-100 .shadow-sm}
+::: {.card-body}
+### 📘 [Unidad 2: Fundamentos de R](unidad2.qmd)
+Aprende la sintaxis esencial de R, tipos de datos, vectores, listas, data frames, funciones, estructuras de control y programación funcional moderna con el pipe nativo `|>`.
+
+[Ir al tutorial &rarr;](unidad2.qmd){.btn .btn-primary .btn-sm}
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-6}
+::: {.card .h-100 .shadow-sm}
+::: {.card-body}
+### 📊 [Unidad 3: Manipulación con dplyr](unidad3.qmd)
+Domina las herramientas del Tidyverse para transformar y limpiar datos con `nycflights13`: filtrado (`filter`), selección (`select`), creación de columnas (`mutate`) y resúmenes agrupados con `.by`.
+
+[Ir al tutorial &rarr;](unidad3.qmd){.btn .btn-primary .btn-sm}
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-6}
+::: {.card .h-100 .shadow-sm}
+::: {.card-body}
+### 📈 [Unidad 4: Visualización con ggplot2](unidad4.qmd)
+Aplica la *Gramática de los Gráficos* para crear gráficos estadísticos rigurosos y visualmente atractivos: diagramas de dispersión, líneas, histogramas, diagramas de caja y gráficos de barras con facetas.
+
+[Ir al tutorial &rarr;](unidad4.qmd){.btn .btn-primary .btn-sm}
+:::
+:::
+:::
+
+::: {.g-col-12 .g-col-md-6}
+::: {.card .h-100 .shadow-sm}
+::: {.card-body}
+### 🤖 [Unidad 5: Modelado con tidymodels](unidad5.qmd)
+Ecosistema moderno de Machine Learning en R con `tidymodels`: división de muestras (`rsample`), especificación con `parsnip`, flujos de trabajo con `workflows` y evaluación con `yardstick`.
+
+[Ir al tutorial &rarr;](unidad5.qmd){.btn .btn-primary .btn-sm}
+:::
+:::
+:::
+
+:::
+

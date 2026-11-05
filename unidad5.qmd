@@ -1,0 +1,231 @@
+---
+title: "Unidad 5: Modelado Predictivo con tidymodels"
+subtitle: "Machine Learning moderno en R: parsnip, recipes, workflows y yardstick"
+format:
+  live-html:
+    theme: flatly
+    toc: true
+    toc-depth: 3
+    toc-title: "Contenidos"
+webr:
+  packages:
+    - tidymodels
+    - mlbench
+    - gradethis
+---
+
+{{< include _extensions/r-wasm/live/_gradethis.qmd >}}
+
+## Introducción a Machine Learning con `tidymodels`
+
+Históricamente, los diferentes algoritmos de Machine Learning en R utilizaban interfaces dispares: cada paquete tenía su propia sintaxis para entrenar, sus propios nombres de argumentos y formatos de salida incompatibles (como ocurría en el paquete original `mlr`).
+
+**`tidymodels`** es la colección moderna de paquetes desarrollada por Posit (siguiendo los principios del Tidyverse) para modelado y aprendizaje computacional:
+
+- **`rsample`:** División de datos en entrenamiento, prueba y validación cruzada.
+- **`parsnip`:** Interfaz unificada e independiente del motor (`engine`) para especificar modelos (regresión lineal, árboles, random forest...).
+- **`recipes`:** Preprocesamiento y transformación de variables (*feature engineering*).
+- **`workflows`:** Empaquetado unificado de recetas de preprocesamiento y modelos.
+- **`yardstick`:** Cálculo de métricas de rendimiento y diagnóstico (RMSE, precisión, AUC, matriz de confusión).
+
+---
+
+## 1. División de datos con `rsample`
+
+El principio fundamental del modelado supervisado es evaluar los modelos sobre observaciones no vistas durante el entrenamiento para evitar el sobreajuste (*overfitting*):
+
+```{webr}
+library(tidymodels)
+
+set.seed(123)
+
+# División 75% entrenamiento / 25% prueba
+division <- initial_split(ChickWeight, prop = 0.75)
+datos_train <- training(division)
+datos_test <- testing(division)
+
+cat("Muestras de entrenamiento:", nrow(datos_train), "\n")
+cat("Muestras de prueba:", nrow(datos_test), "\n")
+```
+
+---
+
+## 2. Regresión con `parsnip`
+
+Para definir un modelo con `parsnip` seguimos tres pasos:
+1. **Tipo de modelo:** Función que especifica el algoritmo (ej. `linear_reg()`, `decision_tree()`).
+2. **Modo:** `set_mode("regression")` o `set_mode("classification")`.
+3. **Motor:** `set_engine("lm")` o `set_engine("ranger")` o `set_engine("rpart")`.
+
+```{webr}
+# 1. Especificar modelo
+modelo_lineal <- linear_reg() |> 
+  set_engine("lm") |> 
+  set_mode("regression")
+
+# 2. Ajustar sobre el conjunto de entrenamiento
+ajuste_reg <- modelo_lineal |> 
+  fit(weight ~ Time + Diet, data = datos_train)
+
+# 3. Resumen de coeficientes
+tidy(ajuste_reg)
+```
+
+### Predicción y Evaluación con `yardstick`
+
+En `tidymodels`, la función `predict()` siempre devuelve un tibble con el mismo número de filas que los nuevos datos y nombres de columna estandarizados (`.pred`):
+
+```{webr}
+predicciones_reg <- datos_test |> 
+  bind_cols(predict(ajuste_reg, new_data = datos_test))
+
+predicciones_reg |> 
+  select(weight, Time, Diet, .pred) |> 
+  head(5)
+```
+
+Evaluamos el error cuadrático medio (RMSE) y $R^2$:
+
+```{webr}
+metrics(predicciones_reg, truth = weight, estimate = .pred)
+```
+
+### Ejercicio 1: Árbol de decisión para regresión
+
+Crea una especificación de árbol de decisión para regresión usando `decision_tree(mode = "regression") |> set_engine("rpart")`. Ajusta el modelo sobre `datos_train` para predecir `weight` a partir de `Time` y `Diet`.
+
+```{webr}
+#| exercise: u5_tree_reg
+# Especifica y ajusta el árbol:
+modelo_arbol <- decision_tree(mode = "regression") |> 
+  set_engine("rpart")
+
+ajuste_arbol <- modelo_arbol |> 
+  fit(weight ~ Time + Diet, data = datos_train)
+
+ajuste_arbol
+```
+
+```{webr}
+#| exercise: u5_tree_reg
+#| solution: true
+modelo_arbol <- decision_tree(mode = "regression") |> 
+  set_engine("rpart")
+
+ajuste_arbol <- modelo_arbol |> 
+  fit(weight ~ Time + Diet, data = datos_train)
+
+ajuste_arbol
+```
+
+```{webr}
+#| exercise: u5_tree_reg
+#| check: true
+gradethis::grade_this_code(correct = "¡Excelente! Has definido y ajustado un árbol de regresión con la sintaxis unificada de parsnip.")
+```
+
+---
+
+## 3. Clasificación con `tidymodels`
+
+Utilizaremos el dataset `Glass` del paquete `mlbench` para clasificar tipos de vidrio a partir de sus componentes químicos:
+
+```{webr}
+library(mlbench)
+data(Glass, package = "mlbench")
+
+glimpse(Glass)
+```
+
+```{webr}
+set.seed(42)
+split_glass <- initial_split(Glass, prop = 0.8, strata = Type)
+train_glass <- training(split_glass)
+test_glass <- testing(split_glass)
+```
+
+### Especificación y ajuste de un clasificador
+
+```{webr}
+modelo_rf <- rand_forest(trees = 100) |> 
+  set_engine("ranger") |> 
+  set_mode("classification")
+
+ajuste_rf <- modelo_rf |> 
+  fit(Type ~ ., data = train_glass)
+
+ajuste_rf
+```
+
+### Evaluación: Matriz de Confusión y Precisión
+
+```{webr}
+pred_clasif <- test_glass |> 
+  bind_cols(predict(ajuste_rf, new_data = test_glass))
+
+# Matriz de confusión
+conf_mat(pred_clasif, truth = Type, estimate = .pred_class)
+```
+
+```{webr}
+# Exactitud global (Accuracy)
+accuracy(pred_clasif, truth = Type, estimate = .pred_class)
+```
+
+### Ejercicio 2: Clasificación con Árbol de Decisión
+
+Define un modelo de árbol de decisión para clasificación (`decision_tree(mode = "classification") |> set_engine("rpart")`), ajústalo sobre `train_glass` para predecir `Type ~ .`, y calcula las predicciones de clase sobre `test_glass`.
+
+```{webr}
+#| exercise: u5_tree_class
+modelo_tree_c <- decision_tree(mode = "classification") |> 
+  set_engine("rpart")
+
+ajuste_tree_c <- modelo_tree_c |> 
+  fit(Type ~ ., data = train_glass)
+
+predicciones <- test_glass |> 
+  bind_cols(predict(ajuste_tree_c, new_data = test_glass))
+
+accuracy(predicciones, truth = Type, estimate = .pred_class)
+```
+
+```{webr}
+#| exercise: u5_tree_class
+#| solution: true
+modelo_tree_c <- decision_tree(mode = "classification") |> 
+  set_engine("rpart")
+
+ajuste_tree_c <- modelo_tree_c |> 
+  fit(Type ~ ., data = train_glass)
+
+predicciones <- test_glass |> 
+  bind_cols(predict(ajuste_tree_c, new_data = test_glass))
+
+accuracy(predicciones, truth = Type, estimate = .pred_class)
+```
+
+```{webr}
+#| exercise: u5_tree_class
+#| check: true
+gradethis::grade_this_code(correct = "¡Perfecto! Dominas el ciclo completo de modelado supervisado con tidymodels.")
+```
+
+---
+
+## 4. Flujos de Trabajo con `workflows` y `recipes`
+
+Un `workflow` combina la receta de preprocesamiento (escalado, imputación, dummies) y el modelo en un único objeto portable:
+
+```{webr}
+receta_vidrio <- recipe(Type ~ ., data = train_glass) |> 
+  step_normalize(all_numeric_predictors())
+
+flujo_trabajo <- workflow() |> 
+  add_recipe(receta_vidrio) |> 
+  add_model(modelo_tree_c)
+
+ajuste_flujo <- fit(flujo_trabajo, data = train_glass)
+ajuste_flujo
+```
+

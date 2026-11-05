@@ -1,0 +1,211 @@
+---
+title: "Unidad 4: Visualización de Datos con ggplot2"
+subtitle: "La Gramática de los Gráficos y los 5 Gráficos con Nombre (5NG)"
+format:
+  live-html:
+    theme: flatly
+    toc: true
+    toc-depth: 3
+    toc-title: "Contenidos"
+webr:
+  packages:
+    - tidyverse
+    - gapminder
+    - nycflights13
+    - gradethis
+---
+
+{{< include _extensions/r-wasm/live/_gradethis.qmd >}}
+
+## Introducción a la Visualización
+
+La visualización es el medio más directo para explorar patrones, distribuciones y relaciones entre variables. En R, el estándar es el paquete **`ggplot2`**, basado en el marco teórico de la *Gramática de los Gráficos* (Leland Wilkinson).
+
+---
+
+## La Gramática de los Gráficos
+
+Todo gráfico en `ggplot2` se construye combinando capas:
+
+1. **Datos (`data`):** El data frame que contiene las variables.
+2. **Estéticas (`aes` - aesthetic mappings):** Conexión entre variables y propiedades visuales (eje `x`, eje `y`, `color`, `fill`, `size`, `shape`).
+3. **Objetos geométricos (`geom_*`):** La forma gráfica que representará las observaciones (puntos, líneas, barras...).
+4. **Facetas (`facet_*`):** División del gráfico en paneles según una variable categórica.
+5. **Escalas, temas y etiquetas (`labs()`, `theme_*()`):** Ajuste estético final.
+
+La estructura básica se escribe como:
+
+```r
+ggplot(data = <DATOS>, mapping = aes(<ESTÉTICAS>)) +
+  geom_<TIPO>()
+```
+
+---
+
+## Los 5 Gráficos con Nombre (5NG)
+
+Trabajaremos con el dataset `gapminder` para explorar los cinco gráficos esenciales:
+
+```{webr}
+library(ggplot2)
+library(gapminder)
+
+gapminder_2007 <- gapminder |> 
+  dplyr::filter(year == 2007)
+
+head(gapminder_2007, 4)
+```
+
+---
+
+### 1. Diagrama de Dispersión (`geom_point`)
+
+Ideal para visualizar la relación entre dos variables cuantitativas continuas:
+
+```{webr}
+ggplot(data = gapminder_2007, aes(x = gdpPercap, y = lifeExp, color = continent)) +
+  geom_point(size = 3, alpha = 0.7) +
+  scale_x_log10() +
+  labs(
+    title = "Esperanza de Vida vs. PIB per cápita (2007)",
+    x = "PIB per cápita (escala log10)",
+    y = "Esperanza de vida (años)",
+    color = "Continente"
+  )
+```
+
+### Ejercicio 1: Dispersión con tamaño proporcional
+
+Genera un diagrama de dispersión con `gapminder_2007` donde:
+- El eje `x` sea `gdpPercap`.
+- El eje `y` sea `lifeExp`.
+- El tamaño (`size`) de los puntos represente la población `pop`.
+
+```{webr}
+#| exercise: u4_scatter_pop
+ggplot(data = gapminder_2007, aes(x = gdpPercap, y = lifeExp, size = pop)) +
+  geom_point()
+```
+
+```{webr}
+#| exercise: u4_scatter_pop
+#| solution: true
+ggplot(data = gapminder_2007, aes(x = gdpPercap, y = lifeExp, size = pop)) +
+  geom_point()
+```
+
+```{webr}
+#| exercise: u4_scatter_pop
+#| check: true
+gradethis::grade_this_code(correct = "¡Perfecto! Mapear `pop` al atributo `size` genera un gráfico de burbujas donde se aprecia el peso poblacional.")
+```
+
+---
+
+### 2. Gráfico de Líneas (`geom_line`)
+
+Apropiado para series temporales o evolución de una magnitud continua:
+
+```{webr}
+gapminder |> 
+  dplyr::filter(country == "Spain") |> 
+  ggplot(aes(x = year, y = lifeExp)) +
+  geom_line(color = "steelblue", linewidth = 1.2) +
+  geom_point(color = "darkred", size = 2.5) +
+  labs(
+    title = "Evolución de la Esperanza de Vida en España",
+    x = "Año",
+    y = "Esperanza de vida (años)"
+  )
+```
+
+---
+
+### 3. Histograma (`geom_histogram`)
+
+Permite visualizar la distribución de frecuencias de una única variable cuantitativa:
+
+```{webr}
+ggplot(data = gapminder_2007, aes(x = lifeExp)) +
+  geom_histogram(binwidth = 5, fill = "dodgerblue", color = "white") +
+  labs(
+    title = "Distribución de Esperanza de Vida en 2007",
+    x = "Esperanza de vida",
+    y = "Frecuencia (países)"
+  )
+```
+
+---
+
+### 4. Diagrama de Cajas (`geom_boxplot`)
+
+Resume la mediana, cuartiles y valores atípicos (*outliers*) de una variable continua agrupada por categorías:
+
+```{webr}
+ggplot(data = gapminder_2007, aes(x = continent, y = lifeExp, fill = continent)) +
+  geom_boxplot(alpha = 0.6, show.legend = FALSE) +
+  labs(
+    title = "Esperanza de Vida por Continente (2007)",
+    x = "Continente",
+    y = "Esperanza de vida"
+  )
+```
+
+### Ejercicio 2: Boxplot de PIB por Continente
+
+Crea un diagrama de cajas con `gapminder_2007` comparando `gdpPercap` (eje `y`) entre los diferentes continentes (`continent`, eje `x`), añadiendo una escala logarítmica con `scale_y_log10()`.
+
+```{webr}
+#| exercise: u4_boxplot_gdp
+ggplot(data = gapminder_2007, aes(x = continent, y = gdpPercap)) +
+  geom_boxplot() +
+  scale_y_log10()
+```
+
+```{webr}
+#| exercise: u4_boxplot_gdp
+#| solution: true
+ggplot(data = gapminder_2007, aes(x = continent, y = gdpPercap)) +
+  geom_boxplot() +
+  scale_y_log10()
+```
+
+```{webr}
+#| exercise: u4_boxplot_gdp
+#| check: true
+gradethis::grade_this_code(correct = "¡Muy bien! Los diagramas de cajas facilitan una comparación directa de dispersión y asimetría entre grupos.")
+```
+
+---
+
+### 5. Gráfico de Barras y Facetas (`geom_col` y `facet_wrap`)
+
+Para variables discretas o categorías:
+
+```{webr}
+conteo_continentes <- gapminder_2007 |> 
+  dplyr::count(continent)
+
+ggplot(data = conteo_continentes, aes(x = reorder(continent, -n), y = n, fill = continent)) +
+  geom_col(show.legend = FALSE) +
+  labs(
+    title = "Número de Países por Continente en Gapminder",
+    x = "Continente",
+    y = "Número de países"
+  )
+```
+
+Con `facet_wrap(~ variable)` podemos separar el gráfico en sub-paneles para facilitar comparaciones:
+
+```{webr}
+ggplot(data = gapminder, aes(x = year, y = lifeExp, group = country, color = continent)) +
+  geom_line(alpha = 0.4) +
+  facet_wrap(~ continent) +
+  theme(legend.position = "none") +
+  labs(
+    title = "Trayectoria de la Esperanza de Vida por Continente (1952 - 2007)",
+    x = "Año",
+    y = "Esperanza de vida"
+  )
+```
+

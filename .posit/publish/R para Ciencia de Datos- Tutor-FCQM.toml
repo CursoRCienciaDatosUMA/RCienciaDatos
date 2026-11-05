@@ -1,0 +1,12 @@
+"$schema" = "https://cdn.posit.co/publisher/schemas/posit-publishing-schema-v3.json"
+type = "html"
+entrypoint = "docs/index.html"
+title = "R para Ciencia de Datos: Tutoriales"
+source = "index.qmd"
+files = [
+    "/docs",
+    "/.posit/publish/R para Ciencia de Datos- Tutor-FCQM.toml",
+    "/.posit/publish/deployments/deployment-JSRE.toml",
+]
+validate = true
+product_type = "connect_cloud"

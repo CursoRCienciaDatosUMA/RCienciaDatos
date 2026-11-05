@@ -1,0 +1,53 @@
+project:
+  type: website
+  output-dir: docs
+  render:
+    - index.qmd
+    - unidad2.qmd
+    - unidad3.qmd
+    - unidad4.qmd
+    - unidad5.qmd
+
+website:
+  title: "R para Ciencia de Datos"
+  description: "Tutoriales Interactivos con WebAssembly y gradethis"
+  navbar:
+    title: "RCienciaDatos"
+    left:
+      - href: index.qmd
+        text: "Inicio"
+      - href: unidad2.qmd
+        text: "U2: Fundamentos"
+      - href: unidad3.qmd
+        text: "U3: Manipulación"
+      - href: unidad4.qmd
+        text: "U4: Visualización"
+      - href: unidad5.qmd
+        text: "U5: Modelado"
+    right:
+      - icon: github
+        href: https://github.com/dominlopez/RCienciaDatos
+  sidebar:
+    style: "docked"
+    search: true
+    contents:
+      - href: index.qmd
+        text: "Portal del Curso"
+      - section: "Tutoriales Interactivos"
+        contents:
+          - href: unidad2.qmd
+            text: "U2: Fundamentos de R"
+          - href: unidad3.qmd
+            text: "U3: Manipulación de Datos (dplyr)"
+          - href: unidad4.qmd
+            text: "U4: Visualización (ggplot2)"
+          - href: unidad5.qmd
+            text: "U5: Modelado Predictivo (tidymodels)"
+
+format:
+  html:
+    theme: flatly
+    toc: true
+    toc-depth: 3
+    toc-title: "Contenidos"
+    smooth-scroll: true

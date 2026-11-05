@@ -1,0 +1,383 @@
+---
+title: "Unidad 2: Fundamentos de R"
+subtitle: "Sintaxis básica, estructuras de datos, funciones y control de flujo"
+format:
+  live-html:
+    theme: flatly
+    toc: true
+    toc-depth: 3
+    toc-title: "Contenidos"
+webr:
+  packages:
+    - tidyverse
+    - gradethis
+---
+
+{{< include _extensions/r-wasm/live/_gradethis.qmd >}}
+
+## Bienvenida
+
+En este tutorial aprenderemos:
+
+- El uso y creación de variables y sus tipos básicos de datos.
+- Estructuras básicas de datos: vectores, factores, listas, matrices y *data frames*.
+- Creación de funciones y las funciones predefinidas más habituales (aritméticas, lógicas y estadísticas).
+- Las estructuras de control y flujo de un programa (`if-else`, bucles `for`).
+- Programación funcional con la familia `*apply()` y la función moderna `purrr::map()`.
+- Uso del operador de tubería (*pipe*) nativo `|>`.
+
+---
+
+## R como calculadora
+
+En la consola de R disponemos de una calculadora interactiva potente:
+
+```{webr}
+2 + 1/3
+pi + pi/2
+cos(pi/3)
+1 / (2 + 1)
+sqrt(2) + (5 + sqrt(3)) / 2
+```
+
+Los resultados se pueden almacenar en variables utilizando el operador de asignación `<-` (o `=`, aunque `<-` es la convención canónica de la comunidad R):
+
+```{webr}
+resul <- sqrt(2) + (5 + sqrt(3)) / 2
+resul2 <- resul + 5
+resul2
+```
+
+---
+
+## Variables
+
+Reglas para nombres de variables:
+- Deben comenzar por una letra y pueden contener letras, números, `_` y `.`.
+- Emplea nombres descriptivos en estilo snake_case (`mi_variable`).
+- R es sensible a mayúsculas y minúsculas (`x` no es igual a `X`).
+
+### Ejercicio: Media geométrica
+
+Calcula la media geométrica $\sqrt{a \cdot b}$ de dos variables, `a` (con valor 7) y `b` (con valor 13), y guarda el resultado en una variable llamada `media`. Finalmente, imprime el valor de `media`.
+
+```{webr}
+#| exercise: u2_variables
+# Define a, b y calcula media:
+
+```
+
+```{webr}
+#| exercise: u2_variables
+#| solution: true
+a <- 7
+b <- 13
+media <- sqrt(a * b)
+media
+```
+
+```{webr}
+#| exercise: u2_variables
+#| check: true
+gradethis::grade_this_code(correct = "¡Excelente! Has definido las variables y calculado la media geométrica correctamente.")
+```
+
+---
+
+## Tipos básicos y comprobación
+
+La función `class()` devuelve el tipo de dato de cualquier objeto:
+
+```{webr}
+edad <- 45L         # Entero (sufijo L)
+peso <- 76.8        # Numérico real (double)
+texto <- "Ciencia"  # Carácter
+flag <- TRUE        # Lógico (booleano)
+
+c(class(edad), class(peso), class(texto), class(flag))
+```
+
+Existen funciones de comprobación (`is.numeric()`, `is.integer()`, `is.character()`, `is.logical()`) y de conversión forzada (`as.numeric()`, `as.integer()`, `as.character()`, `as.logical()`):
+
+### Ejercicio: Conversión de tipos
+
+Crea una variable `x_num` con el valor `42.8`, conviértela a tipo entero con `as.integer()` y almacénala en `x_int`. Muestra el resultado de `x_int`.
+
+```{webr}
+#| exercise: u2_tipos
+x_num <- 42.8
+# Convierte a entero:
+x_int <- 
+x_int
+```
+
+```{webr}
+#| exercise: u2_tipos
+#| solution: true
+x_num <- 42.8
+x_int <- as.integer(x_num)
+x_int
+```
+
+```{webr}
+#| exercise: u2_tipos
+#| check: true
+gradethis::grade_this_code(correct = "¡Muy bien! Observa cómo `as.integer()` trunca la parte decimal.")
+```
+
+---
+
+## Vectores
+
+El vector atómico es la estructura base en R. Todos sus elementos deben ser del mismo tipo. Se construyen combinando elementos con `c()`:
+
+```{webr}
+x <- c(1, 5, 6)
+y <- c(2, 4)
+z <- c(x, y)
+z
+```
+
+### Ejercicio: Longitud de vectores con `length()`
+
+Crea un vector `v` que contenga los elementos `c(10, 20, 30, 40, 50)` y calcula su tamaño usando la función `length()`.
+
+```{webr}
+#| exercise: u2_length
+v <- c(10, 20, 30, 40, 50)
+# Calcula la longitud de v:
+
+```
+
+```{webr}
+#| exercise: u2_length
+#| solution: true
+v <- c(10, 20, 30, 40, 50)
+length(v)
+```
+
+```{webr}
+#| exercise: u2_length
+#| check: true
+gradethis::grade_this_code(correct = "¡Perfecto! `length(v)` devuelve el número total de elementos.")
+```
+
+### Secuencias y repeticiones: `seq()` y `rep()`
+
+- `seq(from, to, by)`: genera secuencias equidistantes.
+- `rep(x, times)`: repite un vector o elemento.
+
+### Ejercicio: Secuencias decrecientes
+
+Crea un vector llamado `desc` con los números del 10 al 0 en orden decreciente usando `seq(10, 0, by = -1)`. A continuación crea `repetido` repitiendo dicho vector 3 veces con `rep()`.
+
+```{webr}
+#| exercise: u2_seq_rep
+desc <- 
+repetido <- 
+repetido
+```
+
+```{webr}
+#| exercise: u2_seq_rep
+#| solution: true
+desc <- seq(10, 0, by = -1)
+repetido <- rep(desc, times = 3)
+repetido
+```
+
+```{webr}
+#| exercise: u2_seq_rep
+#| check: true
+gradethis::grade_this_code(correct = "¡Bien hecho! Dominas `seq()` y `rep()`.")
+```
+
+---
+
+## Operaciones Vectoriales y Filtrado
+
+R opera elemento a elemento de forma nativa sin necesidad de bucles:
+
+```{webr}
+v1 <- 1:5
+v2 <- 10:6
+v1 + v2
+v1 * 2
+```
+
+### Ejercicio: Operaciones vectoriales con $x^x$
+
+Genera un vector con los valores $x^x$ para los enteros de 1 a 6 ($x = 1, 2, \ldots, 6$).
+
+```{webr}
+#| exercise: u2_vectorial
+x <- 1:6
+# Calcula x elevado a x:
+
+```
+
+```{webr}
+#| exercise: u2_vectorial
+#| solution: true
+x <- 1:6
+x^x
+```
+
+```{webr}
+#| exercise: u2_vectorial
+#| check: true
+gradethis::grade_this_code(correct = "¡Exacto! R calcula la potencia elemento a elemento de forma vectorizada.")
+```
+
+### Acceso y Subsetting con Corchetes `[]`
+
+Podemos filtrar posiciones con índices numéricos, condiciones lógicas o `which()`:
+
+```{webr}
+valores <- c(15, 3, 22, 8, 45, 12)
+valores[valores > 10]
+```
+
+### Ejercicio: Filtrado condicional
+
+Dado el vector `edades`, extrae en una variable `adultos` solo aquellos valores que sean mayores o iguales a 18:
+
+```{webr}
+#| exercise: u2_subsetting
+edades <- c(12, 19, 24, 15, 33, 17, 45, 18)
+# Filtra mayores o iguales a 18:
+adultos <- 
+adultos
+```
+
+```{webr}
+#| exercise: u2_subsetting
+#| solution: true
+edades <- c(12, 19, 24, 15, 33, 17, 45, 18)
+adultos <- edades[edades >= 18]
+adultos
+```
+
+```{webr}
+#| exercise: u2_subsetting
+#| check: true
+gradethis::grade_this_code(correct = "¡Genial! `edades[edades >= 18]` selecciona los valores que cumplen la condición booleana.")
+```
+
+---
+
+## Listas y Data Frames
+
+- **Listas:** Pueden contener elementos de diferentes tipos y longitudes.
+- **Data Frames:** Tablas donde cada columna es un vector del mismo tipo y todas las columnas comparten el mismo número de filas.
+
+```{webr}
+mi_lista <- list(id = 1:3, curso = "R para Ciencia de Datos", activo = TRUE)
+mi_lista$curso
+```
+
+```{webr}
+df_alumnos <- data.frame(
+  nombre = c("Ana", "Bernardo", "Carlos"),
+  nota = c(8.5, 7.0, 9.2),
+  aprobado = c(TRUE, TRUE, TRUE)
+)
+df_alumnos
+```
+
+### Ejercicio: Acceso a columnas en Data Frame
+
+Calcula la media de la columna `nota` de `df_alumnos` usando la función `mean()` y el operador de acceso `$`:
+
+```{webr}
+#| exercise: u2_df
+df_alumnos <- data.frame(
+  nombre = c("Ana", "Bernardo", "Carlos"),
+  nota = c(8.5, 7.0, 9.2),
+  aprobado = c(TRUE, TRUE, TRUE)
+)
+# Calcula la media de notas:
+
+```
+
+```{webr}
+#| exercise: u2_df
+#| solution: true
+mean(df_alumnos$nota)
+```
+
+```{webr}
+#| exercise: u2_df
+#| check: true
+gradethis::grade_this_code(correct = "¡Perfecto! Con `df_alumnos$nota` extraes la columna como vector para `mean()`.")
+```
+
+---
+
+## Funciones y Estructuras de Control
+
+Definición de funciones con `function()`:
+
+```{webr}
+celsius_a_fahrenheit <- function(c) {
+  (c * 9/5) + 32
+}
+celsius_a_fahrenheit(25)
+```
+
+Condicionales vectorizados con `ifelse()`:
+
+```{webr}
+calificaciones <- c(4.5, 8.0, 3.2, 9.5)
+ifelse(calificaciones >= 5.0, "Aprobado", "Suspenso")
+```
+
+---
+
+## Programación Funcional y el Operador Pipe `|>`
+
+A partir de R 4.1, R incluye el operador nativo de tubería `|>`, que pasa el resultado de la expresión izquierda como primer argumento de la función derecha:
+
+$$x \mid> f(y) \quad \Longleftrightarrow \quad f(x, y)$$
+
+```{webr}
+# Con pipe nativo |>
+1:10 |> 
+  sum() |> 
+  sqrt()
+```
+
+### Familia `map()` de `purrr`
+
+`map()` aplica una función a cada elemento de una lista o vector, devolviendo el resultado en el tipo especificado (`map_dbl()`, `map_chr()`, etc.):
+
+```{webr}
+numeros <- list(a = 1:5, b = 10:20, c = 50:100)
+purrr::map_dbl(numeros, mean)
+```
+
+### Ejercicio: Uso del Pipe nativo `|>`
+
+Usa el pipe `|>` para tomar el vector `c(4, 9, 16, 25)`, calcular su raíz cuadrada con `sqrt()` y luego sumar todos sus elementos con `sum()`.
+
+```{webr}
+#| exercise: u2_pipe
+# Concatena con el operador |>:
+c(4, 9, 16, 25) |> 
+
+```
+
+```{webr}
+#| exercise: u2_pipe
+#| solution: true
+c(4, 9, 16, 25) |> 
+  sqrt() |> 
+  sum()
+```
+
+```{webr}
+#| exercise: u2_pipe
+#| check: true
+gradethis::grade_this_code(correct = "¡Excelente! El operador nativo `|>` hace el código mucho más legible y secuencial.")
+```
+
